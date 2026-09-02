@@ -1,0 +1,14 @@
+{
+  "name": "tourneyscan-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "scrape": "node src/index.js",
+    "dry": "DRY_RUN=1 node src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "cheerio": "^1.0.0"
+  }
+}

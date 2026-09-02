@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2a3a">
+<title>TourneyScan — 14U Tournament Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e9ede7;
+    --grid: #c3cfc2;
+    --ink: #1e2a3a;
+    --ink-soft: #51606f;
+    --pencil: #c0392b;
+    --dirt: #b89a6a;
+    --row: #f3f5f1;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ink); }
+  body {
+    margin: 0;
+    min-height: 100svh;
+    overscroll-behavior-y: none;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--grid) 38%, transparent) 27px 28px),
+      var(--paper);
+    color: var(--ink);
+    font-family: "Barlow Semi Condensed", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: calc(14px + env(safe-area-inset-top)) 20px 16px;
+    border-bottom: 4px solid var(--pencil);
+  }
+  .masthead { max-width: 980px; margin: 0 auto; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .masthead h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .02em; }
+  .masthead h1 span { color: var(--dirt); }
+  .masthead p { margin: 0; font-size: 14px; color: #b8c2cc; }
+  .masthead .updated { margin-left: auto; font-size: 13px; color: #8d99a6; font-variant-numeric: tabular-nums; }
+
+  .legend {
+    max-width: 980px; margin: 18px auto 6px; padding: 0 20px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end;
+  }
+  .control { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+  .control b { font-weight: 600; color: var(--ink); font-size: 14px; }
+  .control output { font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 150px; accent-color: var(--pencil); }
+  input[type=number] { width: 58px; padding: 4px 6px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; }
+  .orgs { display: flex; gap: 10px; }
+  .orgs label { display: flex; gap: 5px; align-items: center; font-weight: 500; cursor: pointer; }
+  .orgs input { accent-color: var(--ink); }
+  .band { display: flex; gap: 6px; align-items: center; cursor: pointer; font-weight: 500; }
+  .band input { accent-color: var(--pencil); }
+
+  .tally { max-width: 980px; margin: 4px auto 0; padding: 0 20px; font-size: 15px; color: var(--ink-soft); }
+  .tally strong { color: var(--pencil); font-weight: 800; }
+
+  .board { max-width: 980px; margin: 10px auto 60px; padding: 0 12px; }
+  .month { margin: 26px 8px 8px; font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+  .game {
+    display: grid;
+    grid-template-columns: 84px 1fr auto auto;
+    gap: 4px 16px;
+    align-items: center;
+    background: var(--row);
+    border: 1.5px solid var(--grid);
+    border-left: 5px solid var(--grid);
+    border-radius: 3px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    text-decoration: none;
+    color: inherit;
+  }
+  .game:focus-visible { outline: 3px solid var(--pencil); outline-offset: 2px; }
+  .game.qualifies { border-left-color: var(--pencil); }
+  .when { text-align: center; line-height: 1.15; }
+  .when .day { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .when .dow { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+  .what .name { font-weight: 600; font-size: 16.5px; }
+  .what .where { font-size: 14px; color: var(--ink-soft); }
+  .what .where em { font-style: normal; color: var(--dirt); font-weight: 600; }
+  .dist { font-variant-numeric: tabular-nums; font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
+  .dist b { color: var(--ink); font-weight: 600; }
+  .count { position: relative; text-align: center; min-width: 58px; line-height: 1.1; }
+  .count .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .count .lbl { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+  .count .delta { font-size: 12px; font-weight: 600; color: var(--pencil); }
+  .qualifies .count .n { color: var(--pencil); }
+  .qualifies .count::before {
+    content: "";
+    position: absolute; inset: -7px -9px 6px;
+    border: 2.5px solid var(--pencil);
+    border-radius: 50% 46% 52% 48% / 58% 52% 46% 54%;
+    transform: rotate(-3deg);
+    opacity: .85;
+    pointer-events: none;
+  }
+  .approx { font-size: 11.5px; color: var(--dirt); font-weight: 600; }
+
+  .empty { margin: 60px auto; max-width: 460px; text-align: center; color: var(--ink-soft); }
+  .empty b { color: var(--ink); }
+  .note { max-width: 980px; margin: 0 auto 40px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
+
+  @media (max-width: 620px) {
+    .legend { gap: 12px 18px; }
+    .game { grid-template-columns: 62px 1fr auto; }
+    .dist { grid-column: 2; font-size: 13.5px; }
+    .count { grid-row: 1 / span 2; grid-column: 3; }
+    .when .day { font-size: 19px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .game { transition: border-left-color .15s ease; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="masthead">
+    <h1>Tourney<span>Scan</span></h1>
+    <p>14U tournaments with open brackets near Sanger, TX — NCS, PAC &amp; PPS, checked twice daily</p>
+    <div class="updated" id="updated"></div>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="control">
+    <b>Distance</b>
+    <input type="range" id="maxDist" min="20" max="250" step="5" value="80">
+    <output id="distOut">up to 80 mi</output>
+  </div>
+  <label class="band control" style="flex-direction:row;align-items:center;">
+    <input type="checkbox" id="bandOnly"> <b>50–80 mi band only</b>
+  </label>
+  <div class="control">
+    <b>Min 14U teams</b>
+    <input type="number" id="minTeams" min="0" max="30" value="3">
+  </div>
+  <div class="control">
+    <b>Orgs</b>
+    <div class="orgs">
+      <label><input type="checkbox" data-org="NCS" checked>NCS</label>
+      <label><input type="checkbox" data-org="PAC" checked>PAC</label>
+      <label><input type="checkbox" data-org="PPS" checked>PPS</label>
+    </div>
+  </div>
+</div>
+
+<div class="tally" id="tally"></div>
+<main class="board" id="board"></main>
+<p class="note">Red-circled counts qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlleWt5dXRzYmVxamNnZHhsdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NjcyNTksImV4cCI6MjEwMTM0MzI1OX0.foy5D4fmX8FubtQ76Z-W4E2Nod_XS6LCdHvO5Df_inY";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
+const $ = (s) => document.querySelector(s);
+let events = [], deltas = new Map();
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const fmtDay = (iso) => {
+  const d = new Date(iso + "T12:00:00");
+  return { day: d.getDate(), dow: DOW[d.getDay()], month: MONTHS[d.getMonth()], year: d.getFullYear(), t: d.getTime() };
+};
+
+async function load() {
+  const today = new Date().toISOString().slice(0, 10);
+  const [ev, snaps] = await Promise.all([
+    db.from("events").select("*").eq("has_14u", true).gte("end_date", today).order("start_date"),
+    db.from("registration_snapshots").select("event_id, snapshot_date, teams_14u")
+      .gte("snapshot_date", new Date(Date.now() - 8 * 86400e3).toISOString().slice(0, 10))
+      .order("snapshot_date"),
+  ]);
+  if (ev.error) { $("#board").innerHTML = `<div class="empty">Couldn't load events: ${ev.error.message}. Check the anon key and that the tourneyscan schema is exposed in the Data API.</div>`; return; }
+  events = ev.data || [];
+  for (const s of snaps.data || []) {
+    const arr = deltas.get(s.event_id) || [];
+    arr.push(s);
+    deltas.set(s.event_id, arr);
+  }
+  const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
+  if (latest) $("#updated").textContent = "Updated " + new Date(latest).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  render();
+}
+
+function weekDelta(id, current) {
+  const arr = deltas.get(id);
+  if (!arr || arr.length < 2) return 0;
+  return current - arr[0].teams_14u;
+}
+
+function render() {
+  const maxDist = +$("#maxDist").value;
+  const band = $("#bandOnly").checked;
+  const minTeams = +$("#minTeams").value;
+  const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
+  $("#distOut").textContent = band ? "50–80 mi" : `up to ${maxDist} mi`;
+
+  const inRange = (d) => d != null && (band ? d >= 50 && d <= 80 : d <= maxDist);
+  const countOf = (e) => (e.teams_14u != null ? e.teams_14u : e.total_registered);
+
+  const shown = events.filter((e) => orgs.has(e.org) && inRange(+e.distance_miles));
+  const qual = shown.filter((e) => countOf(e) >= minTeams);
+  $("#tally").innerHTML = shown.length
+    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming 14U event${shown.length === 1 ? "" : "s"} in range`
+    : "";
+
+  if (!shown.length) {
+    $("#board").innerHTML = `<div class="empty"><b>No 14U events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
+    return;
+  }
+
+  let html = "", lastMonth = "";
+  for (const e of shown) {
+    const d = fmtDay(e.start_date);
+    const monthKey = `${d.month} ${d.year}`;
+    if (monthKey !== lastMonth) { html += `<h2 class="month">${monthKey}</h2>`; lastMonth = monthKey; }
+    const n = countOf(e);
+    const approx = e.teams_14u == null;
+    const delta = e.teams_14u != null ? weekDelta(e.id, e.teams_14u) : 0;
+    const q = n >= minTeams;
+    const endD = e.end_date && e.end_date !== e.start_date ? "–" + fmtDay(e.end_date).day : "";
+    html += `<a class="game${q ? " qualifies" : ""}" href="${e.event_url}" target="_blank" rel="noopener">
+      <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div></div>
+      <div class="what">
+        <div class="name">${esc(e.name)}</div>
+        <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}</div>
+      </div>
+      <div class="dist"><b>${e.distance_miles}</b> mi</div>
+      <div class="count">
+        <div class="n">${n}${approx ? "" : ""}</div>
+        <div class="lbl">${approx ? '<span class="approx">≈ all ages</span>' : "14U teams"}</div>
+        ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
+      </div>
+    </a>`;
+  }
+  $("#board").innerHTML = html;
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+for (const el of ["#maxDist", "#bandOnly", "#minTeams"].map($)) el.addEventListener("input", render);
+for (const el of document.querySelectorAll("[data-org]")) el.addEventListener("input", render);
+load();
+</script>
+</body>
+</html>
