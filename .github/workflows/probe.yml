@@ -4,24 +4,20 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Ask Resend about domains
+      - name: Trigger Resend domain verification
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
-          code=$(curl -s -o /tmp/d.json -w "%{http_code}" -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains)
-          echo "PROBE http=$code"
+          id=$(curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains \
+               | python3 -c "import sys,json;d=json.load(sys.stdin);print((d.get('data') or [{}])[0].get('id',''))")
+          echo "PROBE domain_id=${id:0:8}..."
+          echo "PROBE verify_response=$(curl -s -X POST -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains/$id/verify)"
+          sleep 20
+          curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains/$id > /tmp/one.json
           python3 - <<'PY'
           import json
-          try:
-              d = json.load(open("/tmp/d.json"))
-          except Exception as e:
-              print("PROBE parse error", e); raise SystemExit
-          items = d.get("data") or d.get("domains") or []
-          if not isinstance(items, list):
-              print("PROBE raw:", json.dumps(d)[:300]); raise SystemExit
-          print("PROBE domain_count:", len(items))
-          for it in items:
-              print("PROBE domain:", it.get("name"), "| status:", it.get("status"), "| region:", it.get("region"), "| id:", (it.get("id") or "")[:8])
-              for r in it.get("records", []) or []:
-                  print("PROBE   record:", r.get("record"), r.get("name"), "| status:", r.get("status"))
+          d = json.load(open("/tmp/one.json"))
+          print("PROBE status:", d.get("status"))
+          for r in d.get("records", []) or []:
+              print("PROBE record:", r.get("record"), r.get("name"), "->", r.get("status"))
           PY
