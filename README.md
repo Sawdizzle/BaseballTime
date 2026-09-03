@@ -7,7 +7,7 @@ project), and serving a filterable dashboard from `/site` on Vercel.
 
 ## Layout
 
-- `scraper/` — Node 20 scraper. `npm run dry` prints JSON without touching the
+- `scraper/` — Node 22 scraper. `npm run dry` prints JSON without touching the
   DB; `npm run scrape` upserts events + daily registration snapshots.
   Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` env vars.
 - `.github/workflows/scrape.yml` — runs the scraper at 7 AM and 7 PM Central,
