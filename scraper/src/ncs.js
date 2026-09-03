@@ -60,7 +60,11 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
           const ev = queue.shift();
           try {
             ev.division_counts = await ncsDivisionCounts(ev.source_event_id, ev.slug);
-            if (ev.divisions.includes("14U")) ev.teams_14u = ev.division_counts["14U"] ?? 0;
+            // An empty result means the team list isn't published; leave the
+            // 14U count null so the dashboard shows the ≈ all-ages total.
+            if (ev.divisions.includes("14U") && Object.keys(ev.division_counts).length) {
+              ev.teams_14u = ev.division_counts["14U"] ?? 0;
+            }
           } catch (err) {
             log(`NCS drill-down failed for ${ev.source_event_id}: ${err.message}`);
           }

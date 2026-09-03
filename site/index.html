@@ -217,11 +217,12 @@ async function load() {
 }
 
 // Exact team count for an event in the given division, or null if the org
-// doesn't publish one. Rows scraped before per-division counts existed only
-// carry teams_14u, so fall back to it for 14U.
+// doesn't publish a team list. A non-empty division_counts means the list was
+// parsed, so a missing age there is a real zero. Rows scraped before
+// per-division counts existed only carry teams_14u, so fall back to it for 14U.
 function exactCount(row, div) {
-  const c = row.division_counts?.[div];
-  if (c != null) return c;
+  const counts = row.division_counts || {};
+  if (Object.keys(counts).length) return counts[div] ?? 0;
   if (div === "14U" && row.teams_14u != null) return row.teams_14u;
   return null;
 }

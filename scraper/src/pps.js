@@ -35,7 +35,10 @@ export async function scrapePPS({ drillDown = true, log = console.error } = {}) 
     for (const ev of targets) {
       try {
         ev.division_counts = await ppsDivisionCounts(ev.slug);
-        if (ev.divisions.includes("14U")) ev.teams_14u = ev.division_counts["14U"] ?? 0;
+        // Some events say "Team list is unavailable"; keep those approximate.
+        if (ev.divisions.includes("14U") && Object.keys(ev.division_counts).length) {
+          ev.teams_14u = ev.division_counts["14U"] ?? 0;
+        }
       } catch (err) {
         log(`PPS drill-down failed for ${ev.slug}: ${err.message}`);
       }
