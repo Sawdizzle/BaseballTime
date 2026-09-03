@@ -157,7 +157,10 @@
 
   .empty { margin: 60px auto; max-width: 460px; text-align: center; color: var(--ink-soft); }
   .empty b { color: var(--ink); }
-  .note { max-width: 980px; margin: 0 auto 40px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
+  .note { max-width: 980px; margin: 0 auto 16px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
+  .support { max-width: 980px; margin: 0 auto 48px; padding: 0 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 13px; color: var(--ink-soft); }
+  .support a { display: inline-block; line-height: 0; }
+  .support img { height: 40px; width: auto; border-radius: 6px; }
 
   /* Phones */
   @media (max-width: 620px) {
@@ -274,6 +277,11 @@
 <div class="tally" id="tally"></div>
 <main class="board" id="board"></main>
 <p class="note">Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
+
+<div class="support">
+  <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.</span>
+  <a href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=sawtech&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" loading="lazy"></a>
+</div>
 
 <div class="install" id="install" hidden>
   <img src="icon-192.png" alt="">
