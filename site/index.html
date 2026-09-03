@@ -208,6 +208,11 @@
   .tier.q .n { color: var(--pencil); }
   .tier.q .lbl { color: var(--pencil); }
   .approx { font-size: 11.5px; color: var(--dirt); font-weight: 600; }
+  .turf {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 3px;
+    font-size: 11px; font-weight: 800; letter-spacing: .02em;
+    background: #1f7a4d; color: #fff; vertical-align: 1px;
+  }
   .ages { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
   .age {
     font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--ink-soft);
@@ -421,7 +426,7 @@
 </form>
 <main class="board" id="board"></main>
 <div class="more" id="more" hidden><button type="button" id="moreBtn"></button></div>
-<p class="note">Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
+<p class="note">A <span class="turf">Turf</span> tag means the organizer advertises turf, which usually plays through rain when grass fields get called off. No organizer publishes the surface as data, so no tag means we don't know, not that it's grass. Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
 
 <div class="support">
   <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.
@@ -669,6 +674,10 @@ function render() {
     }
     const mine = agesOf(e);
     const q = qualifies(e);
+    // No source publishes the playing surface, but organizers who have turf say
+    // so in the name, and that is exactly what matters when rain is forecast.
+    // Absence of the tag means unknown, never grass.
+    const turf = /\bturf\b/i.test(`${e.name} ${e.venue || ""}`);
     // One count tier per selected age this event runs.
     const tiers = mine
       .map((a) => {
@@ -708,7 +717,7 @@ function render() {
       <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div>${thru ? `<div class="thru">${thru}</div>` : ""}</div>
       <div class="what">
         <div class="name">${esc(e.name)}</div>
-        <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}</div>
+        <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}${turf ? '<span class="turf" title="The organizer advertises turf, so it is likelier to play through rain">Turf</span>' : ""}</div>
         ${chips ? `<div class="ages">${chips}</div>` : ""}
       </div>
       <div class="dist"><b>${e.miles}</b> mi</div>
