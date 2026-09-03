@@ -913,7 +913,10 @@ const WX_MAX_LEN = 4;   // days; longer than a weekend and it's a league
 const wxCache = new Map();
 try { for (const [k, v] of JSON.parse(sessionStorage.getItem("wx") || "[]")) wxCache.set(k, v); } catch {}
 const wxKey = (lat, lng) => `${(+lat).toFixed(2)},${(+lng).toFixed(2)}`;
-const wxHorizon = () => new Date(Date.now() + WX_DAYS * 86400e3).toISOString().slice(0, 10);
+// A 16-day forecast covers today plus the next 15, so the last day we can
+// speak to is WX_DAYS - 1 out. Using WX_DAYS here left events on the boundary
+// asking for a day the forecast doesn't reach.
+const wxHorizon = () => new Date(Date.now() + (WX_DAYS - 1) * 86400e3).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400e3);
 
 function wxAttr(e) {
@@ -961,8 +964,9 @@ async function paintWeather() {
       if (d.h[i] != null) high = Math.max(high ?? -999, d.h[i]);
       if (d.c[i] >= 95) storm = true;   // WMO 95-99 is thunderstorm
     }
-    if (precip == null && high == null) continue;
+    // Nothing usable for these dates: clear the marker so it isn't retried.
     n.removeAttribute("data-wx");
+    if (precip == null && high == null) continue;
     n.className = "wx" + (storm ? " storm" : precip >= 50 ? " wet" : "");
     n.textContent = [storm ? "Storms" : null, precip != null ? `${precip}% rain` : null, high != null ? `${Math.round(high)}°` : null]
       .filter(Boolean).join(" · ");
