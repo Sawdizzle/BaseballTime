@@ -3,7 +3,8 @@
 Finds 10U through 14U tournaments with open brackets anywhere in Texas and
 Oklahoma (the dashboard measures distance from any city or zip you enter,
 defaulting to Sanger, TX) by scraping NCS
-(playncs.com), PAC (playpacsports.com), PPS (baseball.playpps.com), USSSA
+(playncs.com), PAC (playpacsports.com), the Playbook365 family
+(PPS, 24 Sports, RBI, 2D Sports, Five Tool — one scraper, `playbook365.js`), USSSA
 (usssa.com JSON API, statewide TX + OK), and Perfect Game (the national
 RadGrid schedule, filtered to the states we want) twice
 daily, storing results in Supabase (`tourneyscan` schema in the PickEm
@@ -41,4 +42,4 @@ show ≈ on the dashboard. Tracked divisions live in `scraper/src/util.js`
 
 If a site redesigns, that org's parser fails loudly and the Actions run goes
 red (email from GitHub). The other orgs keep working — failures are isolated
-per source. Fix lives in `scraper/src/{ncs,pac,pps,usssa,pg}.js`.
+per source. Fix lives in `scraper/src/{ncs,pac,playbook365,usssa,pg}.js`.

@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { scrapeNCS } from "./ncs.js";
 import { scrapePAC } from "./pac.js";
-import { scrapePPS } from "./pps.js";
+import { scrapePlaybook365 } from "./playbook365.js";
 import { scrapeUSSSA } from "./usssa.js";
 import { scrapePG } from "./pg.js";
 import { geocodeCity, haversineMiles, SANGER, sleep, TRACKED_DIVISIONS } from "./util.js";
+
+// Texas plus its neighbours: far enough for anyone in the state to find a
+// drive-able tournament, without hauling in the whole country. Widen this when
+// the app goes national.
+const NEARBY_STATES = ["TX", "OK", "LA", "AR", "NM"];
 
 const DRY = process.env.DRY_RUN === "1";
 const log = console.error;
@@ -20,13 +25,13 @@ async function main() {
   const results = await Promise.allSettled([
     scrapeNCS({ log }),
     scrapePAC({ log }),
-    scrapePPS({ log }),
+    scrapePlaybook365({ states: NEARBY_STATES, log }),
     scrapeUSSSA({ log }),
     scrapePG({ log }),
   ]);
   const events = [];
   for (const [i, r] of results.entries()) {
-    const org = ["NCS", "PAC", "PPS", "USSSA", "PG"][i];
+    const org = ["NCS", "PAC", "Playbook365", "USSSA", "PG"][i];
     if (r.status === "fulfilled") events.push(...r.value);
     else log(`${org} scrape FAILED: ${r.reason?.message || r.reason}`);
   }
@@ -39,6 +44,12 @@ async function main() {
     for (const row of data || []) cache.set(`${row.city}|${row.state}`, { lat: row.lat, lng: row.lng });
   }
   for (const ev of events) {
+    // Some sources (Playbook365) hand us the venue's real coordinates, which
+    // beat a city-centroid lookup and cost nothing.
+    if (ev.lat != null && ev.lng != null) {
+      ev.distance_miles = haversineMiles(SANGER, ev);
+      continue;
+    }
     if (!ev.city) continue;
     const key = `${ev.city}|${ev.state}`;
     if (!cache.has(key)) {
