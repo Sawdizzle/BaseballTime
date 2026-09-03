@@ -1,5 +1,6 @@
 export const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TourneyScan/1.0";
 export const SANGER = { lat: 33.3632, lng: -97.1739 };
+export const SANGER_ZIP = "76266";
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -61,7 +62,11 @@ const STATE_NAMES = { TX: "Texas", OK: "Oklahoma", NM: "New Mexico", LA: "Louisi
 
 // Metro-area labels that aren't real place names. DFW → roughly the metro
 // centre (DFW Airport), which is what a "DFW locations" event means in practice.
-const CITY_ALIASES = { "DFW|TX": { lat: 32.8998, lng: -97.0403 } };
+const CITY_ALIASES = {
+  "DFW|TX": { lat: 32.8998, lng: -97.0403 },
+  "DFW METROPLEX|TX": { lat: 32.8998, lng: -97.0403 },
+  "MWC|OK": { lat: 35.4495, lng: -97.3967 }, // Midwest City
+};
 
 // Geocode a city via Open-Meteo (free, no key). Returns {lat,lng} or null.
 export async function geocodeCity(city, state) {
