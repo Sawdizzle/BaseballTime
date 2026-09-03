@@ -34,9 +34,7 @@
     margin: 0;
     min-height: 100svh;
     overscroll-behavior-y: none;
-    background:
-      repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--grid) 38%, transparent) 27px 28px),
-      var(--paper);
+    background: var(--paper);
     color: var(--ink);
     font-family: "Barlow Semi Condensed", system-ui, sans-serif;
     font-size: 16px;
@@ -73,10 +71,40 @@
   .share svg { display: block; }
   .share.done { color: #fff; border-color: var(--feather); background: color-mix(in srgb, var(--feather) 28%, transparent); }
 
-  .legend {
-    max-width: 980px; margin: 18px auto 6px; padding: 0 20px;
-    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end;
+  /* Filters live in a panel that collapses on phones, so the board is the
+     first thing you see rather than a screen and a half of controls. */
+  .filters { max-width: 980px; margin: 14px auto 4px; padding: 0 20px; }
+  .filters > summary {
+    list-style: none; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--row); border: 1.5px solid var(--grid); border-radius: 6px;
+    padding: 11px 14px; font-size: 14.5px; font-weight: 700; color: var(--ink);
   }
+  .filters > summary::-webkit-details-marker { display: none; }
+  .filters > summary::before { content: "\2699"; color: var(--pencil); font-size: 15px; }
+  .filters .sumtext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filters .sumhint { margin-left: auto; color: var(--pencil); font-size: 13px; flex: none; }
+  .filters[open] > summary { margin-bottom: 12px; }
+  .filters[open] > summary::before { content: "\2715"; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end;
+    margin: 0; padding: 0;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 34px; padding: 5px 13px;
+    border: 1.5px solid var(--grid); border-radius: 999px;
+    background: var(--row); color: var(--ink-soft);
+    font-weight: 700; font-size: 14px; line-height: 1;
+    cursor: pointer; -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .chip.on { background: var(--pencil); border-color: var(--pencil); color: #fff; }
+  .chip:focus-within { outline: 2px solid var(--pencil); outline-offset: 2px; }
   .control { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-soft); }
   .control b { font-weight: 600; color: var(--ink); font-size: 14px; }
   .control output { font-variant-numeric: tabular-nums; }
@@ -155,6 +183,7 @@
   .when { text-align: center; line-height: 1.15; }
   .when .day { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .when .dow { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+  .when .thru { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin-top: 1px; }
   .what .name { font-weight: 600; font-size: 16.5px; }
   .what .where { font-size: 14px; color: var(--ink-soft); }
   .what .where em { font-style: normal; color: var(--dirt); font-weight: 600; }
@@ -189,17 +218,30 @@
   .support a { display: inline-block; line-height: 0; }
   .support img { height: 40px; width: auto; border-radius: 6px; }
 
+  @media (min-width: 700px) {
+    .filters > summary { display: none; }
+    .filters[open] > summary { margin-bottom: 0; }
+  }
+
   /* Phones */
   @media (max-width: 620px) {
-    header { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+    header {
+      padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+    }
     .masthead { gap: 10px 12px; }
     .masthead .logo { height: 40px; width: 40px; }
     .masthead h1 { font-size: 22px; }
-    .masthead p { flex-basis: 100%; font-size: 13px; }
+    .masthead p {
+      flex-basis: 100%; font-size: 12.5px; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
     .masthead .updated { margin-left: 0; }
     .masthead .share { margin-left: auto; }
     .masthead .coffee { margin-left: 0; }
-    .legend { gap: 12px 18px; padding: 0 16px; }
+    .filters { padding: 0 16px; }
+    .legend { gap: 14px 18px; }
+    .legend .control { flex-basis: 100%; }
+    .chip { min-height: 38px; font-size: 15px; padding: 6px 15px; }
     input[type=range] { width: min(100%, 220px); }
     .control.dist-ctl { flex-basis: 100%; }
     .locrow input { width: 100%; }
@@ -210,7 +252,7 @@
     .count { grid-row: 1 / span 2; grid-column: 3; gap: 6px; }
     .when .day { font-size: 19px; }
     .what .name { font-size: 15.5px; }
-    .note { padding: 0 16px; }
+    .note, .subscribe, .tally, .players { padding: 0 16px; }
   }
   /* Only devices with a real pointer get hover states */
   @media (hover: hover) {
@@ -267,7 +309,12 @@
   </div>
 </header>
 
-<div class="legend">
+<details class="filters" id="filters">
+  <summary>
+    <span class="sumtext" id="filterSummary">Filters</span>
+    <span class="sumhint">Edit</span>
+  </summary>
+  <div class="legend">
   <form class="control loc-ctl" id="locForm">
     <b>From</b>
     <div class="locrow">
@@ -281,17 +328,20 @@
     <input type="range" id="maxDist" min="0" max="200" step="5" value="80">
     <output id="distOut">up to 80 mi</output>
   </div>
-  <label class="band control" style="flex-direction:row;align-items:center;">
-    <input type="checkbox" id="qualOnly"> <b>Qualifying only</b>
-  </label>
+  <div class="control">
+    <b>Show</b>
+    <div class="chips">
+      <label class="chip"><input type="checkbox" id="qualOnly">Qualifying only</label>
+    </div>
+  </div>
   <div class="control">
     <b>Age</b>
-    <div class="orgs" id="ages">
-      <label><input type="checkbox" data-age="10U">10U</label>
-      <label><input type="checkbox" data-age="11U">11U</label>
-      <label><input type="checkbox" data-age="12U">12U</label>
-      <label><input type="checkbox" data-age="13U">13U</label>
-      <label><input type="checkbox" data-age="14U" checked>14U</label>
+    <div class="chips" id="ages">
+      <label class="chip"><input type="checkbox" data-age="10U">10U</label>
+      <label class="chip"><input type="checkbox" data-age="11U">11U</label>
+      <label class="chip"><input type="checkbox" data-age="12U">12U</label>
+      <label class="chip"><input type="checkbox" data-age="13U">13U</label>
+      <label class="chip"><input type="checkbox" data-age="14U" checked>14U</label>
     </div>
   </div>
   <div class="control">
@@ -300,18 +350,19 @@
   </div>
   <div class="control">
     <b>Orgs</b>
-    <div class="orgs">
-      <label><input type="checkbox" data-org="NCS" checked>NCS</label>
-      <label><input type="checkbox" data-org="PAC" checked>PAC</label>
-      <label><input type="checkbox" data-org="PPS" checked>PPS</label>
-      <label><input type="checkbox" data-org="USSSA" checked>USSSA</label>
-      <label><input type="checkbox" data-org="PG" checked title="Perfect Game">PG</label>
-      <label><input type="checkbox" data-org="24S" checked title="24 Sports">24S</label>
-      <label><input type="checkbox" data-org="RBI" checked title="Rec Baseball Innovations">RBI</label>
-      <label><input type="checkbox" data-org="FT" checked title="Five Tool">FT</label>
+    <div class="chips">
+      <label class="chip"><input type="checkbox" data-org="NCS" checked>NCS</label>
+      <label class="chip"><input type="checkbox" data-org="PAC" checked>PAC</label>
+      <label class="chip"><input type="checkbox" data-org="PPS" checked title="Premier Prospects Sports">PPS</label>
+      <label class="chip"><input type="checkbox" data-org="USSSA" checked>USSSA</label>
+      <label class="chip"><input type="checkbox" data-org="PG" checked title="Perfect Game">PG</label>
+      <label class="chip"><input type="checkbox" data-org="24S" checked title="24 Sports">24S</label>
+      <label class="chip"><input type="checkbox" data-org="RBI" checked title="Rec Baseball Innovations">RBI</label>
+      <label class="chip"><input type="checkbox" data-org="FT" checked title="Five Tool">FT</label>
     </div>
   </div>
-</div>
+  </div>
+</details>
 
 <details class="players" id="players">
   <summary>My players <span id="playerCount"></span></summary>
@@ -503,6 +554,15 @@ function render() {
   // e.miles is computed from the chosen location; null when the event had no
   // coordinates (couldn't be geocoded), which keeps it off the board.
   const miles = (e) => e.miles;
+  syncChips();
+  const allOrgs = document.querySelectorAll("[data-org]").length;
+  $("#filterSummary").textContent = [
+    ages.length ? ages.join(", ") : "no ages",
+    `${maxDist} mi of ${loc.label}`,
+    `min ${minTeams}`,
+    orgs.size === allOrgs ? "all orgs" : `${orgs.size} of ${allOrgs} orgs`,
+  ].join(" · ");
+
   const ics = new URLSearchParams({ ages: ages.join(","), miles: String(maxDist), min: String(minTeams), orgs: [...orgs].join(",") });
   if (loc && isFinite(loc.lat)) { ics.set("lat", loc.lat.toFixed(4)); ics.set("lng", loc.lng.toFixed(4)); }
   $("#icsLink").href = `/calendar.ics?${ics}`;
@@ -568,9 +628,14 @@ function render() {
         return `<span class="age${hit ? " hit" : ""}">${d2}<b>${c == null ? "≈" : c}</b></span>`;
       })
       .join("");
-    const endD = e.end_date && e.end_date !== e.start_date ? "–" + fmtDay(e.end_date).day : "";
+    // Leagues can run across months, where a bare "29–25" reads as nonsense.
+    // Same month keeps the compact range; otherwise spell the end out below.
+    const endF = e.end_date && e.end_date !== e.start_date ? fmtDay(e.end_date) : null;
+    const sameMonth = endF && endF.month === d.month && endF.year === d.year;
+    const endD = endF && sameMonth ? "–" + endF.day : "";
+    const thru = endF && !sameMonth ? `thru ${endF.month.slice(0, 3)} ${endF.day}` : "";
     html += `<a class="game${q ? " qualifies" : ""}" href="${e.event_url}" target="_blank" rel="noopener">
-      <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div></div>
+      <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div>${thru ? `<div class="thru">${thru}</div>` : ""}</div>
       <div class="what">
         <div class="name">${esc(e.name)}</div>
         <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}</div>
@@ -672,8 +737,21 @@ $("#playerList").addEventListener("click", (e) => {
   else if (t.dataset.setage) { for (const cb of document.querySelectorAll("[data-age]")) cb.checked = cb.dataset.age === t.dataset.setage; render(); }
   else if (t.dataset.pick) { const [pid, ncsId] = t.dataset.pick.split(":"); const p = players.find((x) => x.id === pid); if (p) { p.ncsId = ncsId; savePlayers(); renderPlayers(); } }
 });
-if (players.length) $("#players").open = true;
+$("#players").open = players.length > 0 && matchMedia("(min-width: 700px)").matches;
 renderPlayers();
+
+// ---- Filters panel: open on desktop, collapsed on phones so the board is
+// immediately visible. The summary has to carry enough state to be useful
+// while closed.
+const wideScreen = () => matchMedia("(min-width: 700px)").matches;
+$("#filters").open = wideScreen();
+matchMedia("(min-width: 700px)").addEventListener?.("change", (e) => { $("#filters").open = e.matches; });
+
+function syncChips() {
+  for (const cb of document.querySelectorAll(".chip input")) {
+    cb.closest(".chip").classList.toggle("on", cb.checked);
+  }
+}
 
 // ---- Share. Native sheet where the browser has one (phones, Safari),
 // clipboard copy everywhere else. A dismissed sheet is not an error.
