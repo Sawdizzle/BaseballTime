@@ -179,7 +179,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
 const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "14U"];
-let events = [], deltas = new Map();
+let events = [], baselines = new Map();
 
 // Remember the last-picked age and the qualifying-only toggle across visits.
 try {
@@ -198,19 +198,15 @@ const fmtDay = (iso) => {
 
 async function load() {
   const today = new Date().toISOString().slice(0, 10);
+  // snapshot_baseline is a view: each event's oldest snapshot from the last
+  // 7 days (one row per event, so it never hits the 1000-row API cap).
   const [ev, snaps] = await Promise.all([
     db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date"),
-    db.from("registration_snapshots").select("event_id, snapshot_date, teams_14u, division_counts")
-      .gte("snapshot_date", new Date(Date.now() - 8 * 86400e3).toISOString().slice(0, 10))
-      .order("snapshot_date"),
+    db.from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts"),
   ]);
   if (ev.error) { $("#board").innerHTML = `<div class="empty">Couldn't load events: ${ev.error.message}. Check the anon key and that the tourneyscan schema is exposed in the Data API.</div>`; return; }
   events = ev.data || [];
-  for (const s of snaps.data || []) {
-    const arr = deltas.get(s.event_id) || [];
-    arr.push(s);
-    deltas.set(s.event_id, arr);
-  }
+  for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
   const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
   if (latest) $("#updated").textContent = "Updated " + new Date(latest).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   render();
@@ -228,9 +224,9 @@ function exactCount(row, div) {
 }
 
 function weekDelta(id, current, div) {
-  const arr = deltas.get(id);
-  if (!arr || arr.length < 2) return 0;
-  const first = exactCount(arr[0], div);
+  const base = baselines.get(id);
+  if (!base) return 0;
+  const first = exactCount(base, div);
   return first == null ? 0 : current - first;
 }
 
@@ -251,7 +247,10 @@ function render() {
   const inRange = (d) => d != null && (band ? d >= 50 && d <= 80 : d <= maxDist);
   const countOf = (e) => exactCount(e, div) ?? e.total_registered;
 
-  const shown = events.filter((e) => (e.divisions || []).includes(div) && orgs.has(e.org) && inRange(+e.distance_miles));
+  // distance_miles is null for events we couldn't geocode (out of state);
+  // don't let +null become 0 miles.
+  const miles = (e) => (e.distance_miles == null ? null : +e.distance_miles);
+  const shown = events.filter((e) => (e.divisions || []).includes(div) && orgs.has(e.org) && inRange(miles(e)));
   const qual = shown.filter((e) => countOf(e) >= minTeams);
   $("#tally").innerHTML = shown.length
     ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${div} event${shown.length === 1 ? "" : "s"} in range`

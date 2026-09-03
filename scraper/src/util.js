@@ -11,20 +11,23 @@ export async function fetchHtml(url) {
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
-// Parse NCS-style "Sep 12-13", "Aug 28 - Nov 15", "Jun 7" (no year given).
+// Parse NCS-style "Sep 12-13", "Aug 28 - Nov 15", "Jun 7" (no year given), or
+// "Feb 27-28, 2027" (NCS adds the year once the event is in the next year).
 export function parseNcsDates(text, now = new Date()) {
   const t = text.trim();
-  const m = t.match(/^([A-Za-z]{3})\w*\s+(\d{1,2})(?:\s*-\s*(?:([A-Za-z]{3})\w*\s+)?(\d{1,2}))?/);
+  const m = t.match(/^([A-Za-z]{3})\w*\s+(\d{1,2})(?:\s*-\s*(?:([A-Za-z]{3})\w*\s+)?(\d{1,2}))?(?:,\s*(\d{4}))?/);
   if (!m) return { start: null, end: null };
   const sm = MONTHS[m[1].toLowerCase()];
   const sd = parseInt(m[2], 10);
   const em = m[3] ? MONTHS[m[3].toLowerCase()] : sm;
   const ed = m[4] ? parseInt(m[4], 10) : sd;
   if (!sm) return { start: null, end: null };
-  let year = now.getFullYear();
+  const explicitYear = m[5] ? parseInt(m[5], 10) : null;
+  let year = explicitYear ?? now.getFullYear();
   let end = new Date(Date.UTC(year, em - 1, ed));
-  // Listings are upcoming events; if it ended >45 days ago, it must be next year.
-  if (end.getTime() < now.getTime() - 45 * 86400e3) { year += 1; end = new Date(Date.UTC(year, em - 1, ed)); }
+  // No year given: listings are upcoming events, so if it ended >45 days ago
+  // it must be next year.
+  if (!explicitYear && end.getTime() < now.getTime() - 45 * 86400e3) { year += 1; end = new Date(Date.UTC(year, em - 1, ed)); }
   const start = new Date(Date.UTC(em < sm ? year : year, sm - 1, sd)); // em<sm means wraps year; start stays this year
   const iso = (d) => d.toISOString().slice(0, 10);
   return { start: iso(start), end: iso(end) };
