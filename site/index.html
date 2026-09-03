@@ -96,12 +96,14 @@
   .what .where em { font-style: normal; color: var(--dirt); font-weight: 600; }
   .dist { font-variant-numeric: tabular-nums; font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
   .dist b { color: var(--ink); font-weight: 600; }
-  .count { position: relative; text-align: center; min-width: 58px; line-height: 1.1; }
-  .count .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .count .lbl { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
-  .count .delta { font-size: 12px; font-weight: 600; color: var(--pencil); }
-  .qualifies .count .n { color: var(--pencil); }
-  .qualifies .count::before {
+  .count { display: flex; flex-direction: column; gap: 10px; }
+  .tier { position: relative; text-align: center; min-width: 58px; line-height: 1.1; }
+  .tier .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tier .lbl { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+  .tier .delta { font-size: 12px; font-weight: 600; color: var(--pencil); }
+  .count.multi .tier .n { font-size: 18px; }
+  .tier.q .n { color: var(--pencil); }
+  .tier.q::before {
     content: "";
     position: absolute; inset: -7px -9px 6px;
     border: 2.5px solid var(--pencil);
@@ -158,15 +160,15 @@
   </label>
   <div class="control">
     <b>Age</b>
-    <select id="ageDiv">
-      <option value="10U">10U</option>
-      <option value="11U">11U</option>
-      <option value="12U">12U</option>
-      <option value="14U" selected>14U</option>
-    </select>
+    <div class="orgs" id="ages">
+      <label><input type="checkbox" data-age="10U">10U</label>
+      <label><input type="checkbox" data-age="11U">11U</label>
+      <label><input type="checkbox" data-age="12U">12U</label>
+      <label><input type="checkbox" data-age="14U" checked>14U</label>
+    </div>
   </div>
   <div class="control">
-    <b>Min <span id="ageLbl">14U</span> teams</b>
+    <b>Min teams per age</b>
     <input type="number" id="minTeams" min="0" max="30" value="3">
   </div>
   <div class="control">
@@ -193,13 +195,16 @@ const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "14U"];
 let events = [], baselines = new Map();
 
-// Remember the last-picked age and the qualifying-only toggle across visits.
+// Remember the picked ages and the qualifying-only toggle across visits.
 try {
-  const saved = localStorage.getItem("ageDiv");
-  if (DIVISIONS.includes(saved)) $("#ageDiv").value = saved;
+  const saved = JSON.parse(localStorage.getItem("ages") || "null");
+  if (Array.isArray(saved) && saved.some((a) => DIVISIONS.includes(a))) {
+    for (const cb of document.querySelectorAll("[data-age]")) cb.checked = saved.includes(cb.dataset.age);
+  }
   $("#qualOnly").checked = localStorage.getItem("qualOnly") === "1";
 } catch {}
-const currentDiv = () => $("#ageDiv").value;
+const selectedAges = () => DIVISIONS.filter((a) => $(`[data-age="${a}"]`).checked);
+const listAges = (ages) => ages.join(" + ");
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -245,35 +250,43 @@ function weekDelta(id, current, div) {
 function render() {
   const maxDist = +$("#maxDist").value;
   const minTeams = +$("#minTeams").value;
-  const div = currentDiv();
+  const ages = selectedAges();
   const qualOnly = $("#qualOnly").checked;
-  $("#ageLbl").textContent = div;
   try {
-    localStorage.setItem("ageDiv", div);
+    localStorage.setItem("ages", JSON.stringify(ages));
     localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
   } catch {}
   const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
   $("#distOut").textContent = `up to ${maxDist} mi`;
 
   const inRange = (d) => d != null && d <= maxDist;
-  const countOf = (e) => exactCount(e, div) ?? e.total_registered;
+  const countOf = (e, div) => exactCount(e, div) ?? e.total_registered;
+  // Ages this event runs among the ones picked; it qualifies if any of them do.
+  const agesOf = (e) => ages.filter((a) => (e.divisions || []).includes(a));
+  const qualifies = (e) => agesOf(e).some((a) => countOf(e, a) >= minTeams);
 
   // distance_miles is null for events we couldn't geocode (out of state);
   // don't let +null become 0 miles.
   const miles = (e) => (e.distance_miles == null ? null : +e.distance_miles);
-  const shown = events.filter((e) => (e.divisions || []).includes(div) && orgs.has(e.org) && inRange(miles(e)));
-  const qual = shown.filter((e) => countOf(e) >= minTeams);
+  if (!ages.length) {
+    $("#tally").innerHTML = "";
+    $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, or 14U above to see tournaments.</div>`;
+    return;
+  }
+  const shown = events.filter((e) => agesOf(e).length && orgs.has(e.org) && inRange(miles(e)));
+  const qual = shown.filter(qualifies);
+  const label = listAges(ages);
   $("#tally").innerHTML = shown.length
-    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${div} event${shown.length === 1 ? "" : "s"} in range`
+    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${label} event${shown.length === 1 ? "" : "s"} in range`
     : "";
 
   if (!shown.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No ${div} events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
+    $("#board").innerHTML = `<div class="empty"><b>No ${label} events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
     return;
   }
   const rows = qualOnly ? qual : shown;
   if (!rows.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No qualifying ${div} events in range.</b><br>Lower the minimum team count, widen the distance, or turn off “Qualifying only”.</div>`;
+    $("#board").innerHTML = `<div class="empty"><b>No qualifying ${label} events in range.</b><br>Lower the minimum team count, widen the distance, or turn off “Qualifying only”.</div>`;
     return;
   }
 
@@ -282,13 +295,23 @@ function render() {
     const d = fmtDay(e.start_date);
     const monthKey = `${d.month} ${d.year}`;
     if (monthKey !== lastMonth) { html += `<h2 class="month">${monthKey}</h2>`; lastMonth = monthKey; }
-    const n = countOf(e);
-    const exact = exactCount(e, div);
-    const approx = exact == null;
-    const delta = exact != null ? weekDelta(e.id, exact, div) : 0;
-    const q = n >= minTeams;
+    const mine = agesOf(e);
+    const q = qualifies(e);
+    // One count tier per selected age this event runs.
+    const tiers = mine
+      .map((a) => {
+        const exact = exactCount(e, a);
+        const n = exact ?? e.total_registered;
+        const delta = exact != null ? weekDelta(e.id, exact, a) : 0;
+        return `<div class="tier${n >= minTeams ? " q" : ""}">
+          <div class="n">${n}</div>
+          <div class="lbl">${exact == null ? `<span class="approx">${a} ≈ all</span>` : `${a} teams`}</div>
+          ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
+        </div>`;
+      })
+      .join("");
     // Other tracked ages this same tournament runs, with their counts.
-    const chips = DIVISIONS.filter((d2) => d2 !== div && (e.divisions || []).includes(d2))
+    const chips = DIVISIONS.filter((d2) => !mine.includes(d2) && (e.divisions || []).includes(d2))
       .map((d2) => {
         const c = exactCount(e, d2);
         const hit = c != null && c >= minTeams;
@@ -304,11 +327,7 @@ function render() {
         ${chips ? `<div class="ages">${chips}</div>` : ""}
       </div>
       <div class="dist"><b>${e.distance_miles}</b> mi</div>
-      <div class="count">
-        <div class="n">${n}</div>
-        <div class="lbl">${approx ? '<span class="approx">≈ all ages</span>' : `${div} teams`}</div>
-        ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
-      </div>
+      <div class="count${mine.length > 1 ? " multi" : ""}">${tiers}</div>
     </a>`;
   }
   $("#board").innerHTML = html;
@@ -316,8 +335,8 @@ function render() {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-for (const el of ["#maxDist", "#qualOnly", "#minTeams", "#ageDiv"].map($)) el.addEventListener("input", render);
-for (const el of document.querySelectorAll("[data-org]")) el.addEventListener("input", render);
+for (const el of ["#maxDist", "#qualOnly", "#minTeams"].map($)) el.addEventListener("input", render);
+for (const el of document.querySelectorAll("[data-org], [data-age]")) el.addEventListener("input", render);
 load();
 </script>
 </body>
