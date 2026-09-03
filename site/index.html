@@ -210,6 +210,15 @@
   .age.hit { background: var(--pencil); color: #fff; }
   .age.hit b { color: #fff; }
 
+  .more { max-width: 980px; margin: 14px auto 0; padding: 0 12px; text-align: center; }
+  .more button {
+    font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+    background: var(--row); color: var(--pencil);
+    border: 1.5px solid var(--pencil); border-radius: 6px; padding: 11px 22px; width: 100%;
+    max-width: 360px;
+  }
+  .more button:hover { background: color-mix(in srgb, var(--pencil) 10%, var(--row)); }
+
   .empty { margin: 60px auto; max-width: 460px; text-align: center; color: var(--ink-soft); }
   .empty b { color: var(--ink); }
   .note { max-width: 980px; margin: 0 auto 16px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
@@ -329,6 +338,15 @@
     <output id="distOut">up to 80 mi</output>
   </div>
   <div class="control">
+    <b>When</b>
+    <div class="chips" id="windows">
+      <label class="chip"><input type="radio" name="win" data-win="30">30 days</label>
+      <label class="chip"><input type="radio" name="win" data-win="90" checked>3 months</label>
+      <label class="chip"><input type="radio" name="win" data-win="180">6 months</label>
+      <label class="chip"><input type="radio" name="win" data-win="0">All</label>
+    </div>
+  </div>
+  <div class="control">
     <b>Show</b>
     <div class="chips">
       <label class="chip"><input type="checkbox" id="qualOnly">Qualifying only</label>
@@ -379,6 +397,7 @@
 <div class="tally" id="tally"></div>
 <p class="subscribe"><a id="icsLink" href="#" title="Subscribe in Apple Calendar, Google Calendar or Outlook">Add these to your calendar</a> — the feed keeps itself up to date.</p>
 <main class="board" id="board"></main>
+<div class="more" id="more" hidden><button type="button" id="moreBtn"></button></div>
 <p class="note">Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
 
 <div class="support">
@@ -406,6 +425,13 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema
 const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
 let events = [], baselines = new Map();
+// Rows rendered at a time; the rest is one tap away. Smaller on phones so the
+// footer (contact address, support link) stays a few swipes off rather than a
+// few hundred, since the season runs to June 2027.
+// innerWidth can be 0 in a hidden/embedded frame; assume desktop rather than
+// silently giving everyone the phone layout.
+const PAGE = (window.innerWidth || 1024) <= 620 ? 25 : 40;
+let visible = PAGE;
 
 // ---- Where to measure distance from. Default is Sanger, TX; the user can
 // set any city or US zip. Stored per device. Distances are computed here
@@ -460,6 +486,7 @@ $("#locForm").addEventListener("submit", async (e) => {
     try { localStorage.setItem("loc", JSON.stringify(loc)); } catch {}
     out.textContent = "";
     applyLoc();
+    visible = PAGE;
     render();
   } catch (err) {
     out.className = "err"; out.textContent = err.message;
@@ -473,8 +500,12 @@ try {
     for (const cb of document.querySelectorAll("[data-age]")) cb.checked = saved.includes(cb.dataset.age);
   }
   $("#qualOnly").checked = localStorage.getItem("qualOnly") === "1";
+  const win = localStorage.getItem("win");
+  const winEl = win && document.querySelector(`[data-win="${win}"]`);
+  if (winEl) winEl.checked = true;
 } catch {}
 const selectedAges = () => DIVISIONS.filter((a) => $(`[data-age="${a}"]`).checked);
+const windowDays = () => +(document.querySelector("[data-win]:checked")?.dataset.win ?? 0);
 const listAges = (ages) => ages.join(" + ");
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -537,10 +568,14 @@ function render() {
   const minTeams = +$("#minTeams").value;
   const ages = selectedAges();
   const qualOnly = $("#qualOnly").checked;
+  const days = windowDays();
+  const cutoff = days ? new Date(Date.now() + days * 86400e3).toISOString().slice(0, 10) : null;
+  const inWindow = (e) => !cutoff || (e.start_date || "") <= cutoff;
   for (const b of document.querySelectorAll("[data-setage]")) b.classList.toggle("on", ages.includes(b.dataset.setage));
   try {
     localStorage.setItem("ages", JSON.stringify(ages));
     localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
+    localStorage.setItem("win", String(windowDays()));
   } catch {}
   const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
   $("#distOut").textContent = `up to ${maxDist} mi`;
@@ -560,6 +595,7 @@ function render() {
     ages.length ? ages.join(", ") : "no ages",
     `${maxDist} mi of ${loc.label}`,
     `min ${minTeams}`,
+    days ? `next ${days === 30 ? "30 days" : days / 30 + " months"}` : "all dates",
     orgs.size === allOrgs ? "all orgs" : `${orgs.size} of ${allOrgs} orgs`,
   ].join(" · ");
 
@@ -572,15 +608,15 @@ function render() {
     $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, 13U, or 14U above to see tournaments.</div>`;
     return;
   }
-  const shown = events.filter((e) => agesOf(e).length && orgs.has(e.org) && inRange(miles(e)));
+  const shown = events.filter((e) => agesOf(e).length && orgs.has(e.org) && inRange(miles(e)) && inWindow(e));
   const qual = shown.filter(qualifies);
   const label = listAges(ages);
   $("#tally").innerHTML = shown.length
-    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${label} event${shown.length === 1 ? "" : "s"} within ${maxDist} mi of ${esc(loc.label)}`
+    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} ${label} event${shown.length === 1 ? "" : "s"} ${days ? `in the next ${days === 30 ? "30 days" : days / 30 + " months"}` : "upcoming"}, within ${maxDist} mi of ${esc(loc.label)}`
     : "";
 
   if (!shown.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No ${label} events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
+    $("#board").innerHTML = `<div class="empty"><b>No ${label} events in range.</b><br>Widen the distance or the date window, or wait for the next scrape — new tournaments post weekly.</div>`;
     return;
   }
   const rows = qualOnly ? qual : shown;
@@ -589,8 +625,13 @@ function render() {
     return;
   }
 
+  const page = rows.slice(0, visible);
+  const rest = rows.length - page.length;
+  $("#more").hidden = rest <= 0;
+  if (rest > 0) $("#moreBtn").textContent = `Show ${Math.min(rest, PAGE)} more of ${rest}`;
+
   let html = "", lastMonth = "";
-  for (const e of rows) {
+  for (const e of page) {
     const d = fmtDay(e.start_date);
     const monthKey = `${d.month} ${d.year}`;
     if (monthKey !== lastMonth) {
@@ -737,13 +778,13 @@ $("#playerList").addEventListener("click", (e) => {
   else if (t.dataset.setage) { for (const cb of document.querySelectorAll("[data-age]")) cb.checked = cb.dataset.age === t.dataset.setage; render(); }
   else if (t.dataset.pick) { const [pid, ncsId] = t.dataset.pick.split(":"); const p = players.find((x) => x.id === pid); if (p) { p.ncsId = ncsId; savePlayers(); renderPlayers(); } }
 });
-$("#players").open = players.length > 0 && matchMedia("(min-width: 700px)").matches;
+$("#players").open = players.length > 0 && wideScreen();
 renderPlayers();
 
 // ---- Filters panel: open on desktop, collapsed on phones so the board is
 // immediately visible. The summary has to carry enough state to be useful
 // while closed.
-const wideScreen = () => matchMedia("(min-width: 700px)").matches;
+const wideScreen = () => (window.innerWidth || 1024) >= 700;
 $("#filters").open = wideScreen();
 matchMedia("(min-width: 700px)").addEventListener?.("change", (e) => { $("#filters").open = e.matches; });
 
@@ -851,8 +892,15 @@ function syncChips() {
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
-for (const el of ["#maxDist", "#qualOnly", "#minTeams"].map($)) el.addEventListener("input", render);
-for (const el of document.querySelectorAll("[data-org], [data-age]")) el.addEventListener("input", render);
+function rerender() { visible = PAGE; render(); }
+for (const el of ["#maxDist", "#qualOnly", "#minTeams"].map($)) el.addEventListener("input", rerender);
+for (const el of document.querySelectorAll("[data-org], [data-age], [data-win]")) el.addEventListener("input", rerender);
+$("#moreBtn").addEventListener("click", () => {
+  const y = window.scrollY;
+  visible += PAGE;
+  render();
+  window.scrollTo({ top: y }); // keep the reader where they were
+});
 load();
 </script>
 </body>
