@@ -62,6 +62,16 @@
     padding: 6px 10px; border-radius: 999px; white-space: nowrap;
   }
   .coffee:hover { background: #ffe94d; }
+  .share {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; color: var(--feather);
+    border: 1.5px solid color-mix(in srgb, var(--feather) 55%, transparent);
+    font: inherit; font-size: 13px; font-weight: 700; line-height: 1;
+    padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .share:hover { background: color-mix(in srgb, var(--feather) 16%, transparent); }
+  .share svg { display: block; }
+  .share.done { color: #fff; border-color: var(--feather); background: color-mix(in srgb, var(--feather) 28%, transparent); }
 
   .legend {
     max-width: 980px; margin: 18px auto 6px; padding: 0 20px;
@@ -182,7 +192,8 @@
     .masthead h1 { font-size: 22px; }
     .masthead p { flex-basis: 100%; font-size: 13px; }
     .masthead .updated { margin-left: 0; }
-    .masthead .coffee { margin-left: auto; }
+    .masthead .share { margin-left: auto; }
+    .masthead .coffee { margin-left: 0; }
     .legend { gap: 12px 18px; padding: 0 16px; }
     input[type=range] { width: min(100%, 220px); }
     .control.dist-ctl { flex-basis: 100%; }
@@ -240,6 +251,13 @@
     <h1>Baseball Time <span>in TX</span></h1>
     <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
     <div class="updated" id="updated"></div>
+    <button class="share" id="shareBtn" type="button" aria-label="Share this site">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 15V3M12 3 7.5 7.5M12 3l4.5 4.5"/>
+        <path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/>
+      </svg>
+      <span id="shareLabel">Share</span>
+    </button>
     <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕ Buy me a coffee</a>
   </div>
 </header>
@@ -620,6 +638,56 @@ $("#playerList").addEventListener("click", (e) => {
 });
 if (players.length) $("#players").open = true;
 renderPlayers();
+
+// ---- Share. Native sheet where the browser has one (phones, Safari),
+// clipboard copy everywhere else. A dismissed sheet is not an error.
+(function share() {
+  const btn = $("#shareBtn"), label = $("#shareLabel");
+  const flash = (msg) => {
+    label.textContent = msg;
+    btn.classList.add("done");
+    clearTimeout(btn._resetTimer);
+    btn._resetTimer = setTimeout(() => { label.textContent = "Share"; btn.classList.remove("done"); }, 1800);
+  };
+  // Some embedded/older browsers reject the async clipboard even with a real
+  // click, so fall back to the legacy selection copy before giving up.
+  const legacyCopy = (text) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch { ok = false; }
+    ta.remove();
+    return ok;
+  };
+  const copy = async (url) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        return flash("Link copied");
+      }
+    } catch { /* fall through */ }
+    flash(legacyCopy(url) ? "Link copied" : "Copy failed");
+  };
+  btn.addEventListener("click", async () => {
+    const url = location.origin + location.pathname;
+    if (!navigator.share) return copy(url);
+    try {
+      await navigator.share({
+        title: "Baseball Time in TX",
+        text: "10U–14U tournaments with open brackets near you, checked twice daily.",
+        url,
+      });
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // user closed the sheet
+      copy(url);
+    }
+  });
+})();
 
 // ---- Install-to-home-screen prompt.
 // Android/desktop Chrome fire beforeinstallprompt, so we can offer a real
