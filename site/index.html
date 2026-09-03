@@ -55,6 +55,13 @@
   .masthead h1 span { color: var(--feather); }
   .masthead p { margin: 0; font-size: 14px; color: #b9d3ea; }
   .masthead .updated { margin-left: auto; font-size: 13px; color: #8fb0cc; font-variant-numeric: tabular-nums; }
+  .coffee {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #FFDD00; color: #000; text-decoration: none;
+    font-size: 13px; font-weight: 700; line-height: 1;
+    padding: 6px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .coffee:hover { background: #ffe94d; }
 
   .legend {
     max-width: 980px; margin: 18px auto 6px; padding: 0 20px;
@@ -170,6 +177,7 @@
     .masthead h1 { font-size: 22px; }
     .masthead p { flex-basis: 100%; font-size: 13px; }
     .masthead .updated { margin-left: 0; }
+    .masthead .coffee { margin-left: auto; }
     .legend { gap: 12px 18px; padding: 0 16px; }
     input[type=range] { width: min(100%, 220px); }
     .control.dist-ctl { flex-basis: 100%; }
@@ -225,6 +233,7 @@
     <h1>Baseball Time <span>in TX</span></h1>
     <p>10U–14U tournaments with open brackets near Sanger, TX — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
     <div class="updated" id="updated"></div>
+    <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕ Buy me a coffee</a>
   </div>
 </header>
 
