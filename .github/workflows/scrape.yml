@@ -1,1 +1,36 @@
-404: Not Found
+name: Scrape tournaments
+
+on:
+  schedule:
+    # 7 AM and 7 PM Central (CDT = UTC-5). Runs an hour early during CST.
+    - cron: "0 12 * * *"
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: scraper
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: scraper/package-lock.json
+
+      - run: npm ci
+
+      - name: Scrape and upsert to Supabase
+        run: npm run scrape
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
