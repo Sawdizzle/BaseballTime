@@ -1,0 +1,12 @@
+name: probe (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for ua in "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TourneyScan/1.0" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"; do
+            for u in "https://txbaseball.usssa.com/events/?paged=1" "https://txbaseball.usssa.com/event/back-to-school-bash-5/" "https://www.usssa.com/api/?action=getEventTeams&eventID=417270" "https://www.usssa.com/baseball/event_home/?eventID=417270"; do
+              code=$(curl -s -o /tmp/body -w "%{http_code}" -A "$ua" -H "Accept: text/html,application/json,*/*" "$u"); echo "$code | ${ua:0:40} | $u | $(head -c 80 /tmp/body | tr -d '\n')"
+            done
+          done
