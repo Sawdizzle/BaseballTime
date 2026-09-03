@@ -1,8 +1,10 @@
 # BaseballTime / TourneyScan
 
-Finds 10U through 14U tournaments with open brackets near Sanger, TX by scraping NCS
+Finds 10U through 14U tournaments with open brackets anywhere in Texas and
+Oklahoma (the dashboard measures distance from any city or zip you enter,
+defaulting to Sanger, TX) by scraping NCS
 (playncs.com), PAC (playpacsports.com), PPS (baseball.playpps.com), and USSSA
-(txbaseball/okbaseball.usssa.com + the usssa.com JSON API) twice
+(usssa.com JSON API, statewide TX + OK) twice
 daily, storing results in Supabase (`tourneyscan` schema in the PickEm
 project), and serving a filterable dashboard from `/site` on Vercel.
 
@@ -14,6 +16,10 @@ project), and serving a filterable dashboard from `/site` on Vercel.
 - `.github/workflows/scrape.yml` — runs the scraper at 7 AM and 7 PM Central,
   plus manual runs via the Actions tab (workflow_dispatch).
 - `site/` — static dashboard (no build step). Vercel Root Directory = `site`.
+  Distance is computed in the browser from each event's lat/lng and the
+  user's chosen location (zip via Zippopotam, city via Open-Meteo); the
+  scraper's `distance_miles` column is Sanger-based and only used for the
+  run log's qualifying summary.
   Installable as a home-screen app: `manifest.webmanifest`, `sw.js` (shell
   cache only; data is always live), and the icon PNGs rendered from
   `icon.svg`. Re-export the PNGs from `icon.svg` if the icon changes.

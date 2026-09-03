@@ -70,6 +70,11 @@
   .control { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-soft); }
   .control b { font-weight: 600; color: var(--ink); font-size: 14px; }
   .control output { font-variant-numeric: tabular-nums; }
+  .locrow { display: flex; gap: 6px; }
+  .locrow input { width: 150px; padding: 5px 7px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); }
+  .btn.small { padding: 5px 10px; font-size: 13px; }
+  #locOut:empty { display: none; }
+  #locOut.err { color: #b3261e; }
   input[type=range] { width: 150px; accent-color: var(--pencil); }
   input[type=number], select { padding: 4px 6px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); }
   input[type=number] { width: 58px; }
@@ -181,6 +186,8 @@
     .legend { gap: 12px 18px; padding: 0 16px; }
     input[type=range] { width: min(100%, 220px); }
     .control.dist-ctl { flex-basis: 100%; }
+    .locrow input { width: 100%; }
+    .control.loc-ctl { flex-basis: 100%; }
     .board { padding: 0 8px; }
     .game { grid-template-columns: 56px 1fr auto; gap: 3px 10px; padding: 10px 12px; }
     .dist { grid-column: 2; font-size: 13.5px; }
@@ -231,13 +238,21 @@
   <div class="masthead">
     <img class="logo" src="logo.png" alt="" width="52" height="52">
     <h1>Baseball Time <span>in TX</span></h1>
-    <p>10U–14U tournaments with open brackets near Sanger, TX — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
+    <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
     <div class="updated" id="updated"></div>
     <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕ Buy me a coffee</a>
   </div>
 </header>
 
 <div class="legend">
+  <form class="control loc-ctl" id="locForm">
+    <b>From</b>
+    <div class="locrow">
+      <input id="locInput" placeholder="City or zip" maxlength="60" autocomplete="off" value="Sanger, TX">
+      <button class="btn small" type="submit">Set</button>
+    </div>
+    <output id="locOut"></output>
+  </form>
   <div class="control dist-ctl">
     <b>Distance</b>
     <input type="range" id="maxDist" min="0" max="200" step="5" value="80">
@@ -312,6 +327,65 @@ const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
 let events = [], baselines = new Map();
 
+// ---- Where to measure distance from. Default is Sanger, TX; the user can
+// set any city or US zip. Stored per device. Distances are computed here
+// from each event's lat/lng, so the scraper's Sanger-based column is unused.
+const DEFAULT_LOC = { label: "Sanger, TX", lat: 33.3632, lng: -97.1739 };
+let loc = DEFAULT_LOC;
+try { const saved = JSON.parse(localStorage.getItem("loc") || "null"); if (saved && isFinite(saved.lat) && isFinite(saved.lng) && saved.label) loc = saved; } catch {}
+const milesBetween = (a, b) => {
+  const R = 3958.8, toR = (d) => (d * Math.PI) / 180;
+  const dLat = toR(b.lat - a.lat), dLng = toR(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a.lat)) * Math.cos(toR(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 10) / 10;
+};
+const STATE_NAMES = { TX: "Texas", OK: "Oklahoma", LA: "Louisiana", AR: "Arkansas", NM: "New Mexico", KS: "Kansas", MO: "Missouri", CO: "Colorado" };
+
+// Zip → Zippopotam; city → Open-Meteo, US only, preferring "City, ST" state.
+async function geocode(q) {
+  q = q.trim();
+  if (/^\d{5}$/.test(q)) {
+    const r = await fetch(`https://api.zippopotam.us/us/${q}`);
+    if (!r.ok) throw new Error("Zip not found");
+    const j = await r.json(), p = j.places?.[0];
+    if (!p) throw new Error("Zip not found");
+    return { label: `${p["place name"]}, ${p["state abbreviation"]}`, lat: +p.latitude, lng: +p.longitude };
+  }
+  const m = q.match(/^(.+?)(?:,\s*([A-Za-z]{2}))?$/);
+  const name = m[1].trim(), st = (m[2] || "").toUpperCase();
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=en&format=json`);
+  if (!r.ok) throw new Error("Lookup failed");
+  const hits = ((await r.json()).results || []).filter((x) => x.country_code === "US");
+  const want = STATE_NAMES[st];
+  const hit = (want && hits.find((x) => x.admin1 === want)) || hits.find((x) => x.admin1 === "Texas") || hits[0];
+  if (!hit) throw new Error("City not found");
+  const abbr = Object.entries(STATE_NAMES).find(([, n]) => n === hit.admin1)?.[0] || hit.admin1;
+  return { label: `${hit.name}, ${abbr}`, lat: hit.latitude, lng: hit.longitude };
+}
+
+function applyLoc() {
+  $("#locTag").textContent = loc.label;
+  $("#locInput").value = loc.label;
+  for (const e of events) e.miles = e.lat != null && e.lng != null ? milesBetween(loc, e) : null;
+}
+
+$("#locForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#locInput").value.trim();
+  const out = $("#locOut");
+  if (!q) return;
+  out.className = ""; out.textContent = "Looking up…";
+  try {
+    loc = await geocode(q);
+    try { localStorage.setItem("loc", JSON.stringify(loc)); } catch {}
+    out.textContent = "";
+    applyLoc();
+    render();
+  } catch (err) {
+    out.className = "err"; out.textContent = err.message;
+  }
+});
+
 // Remember the picked ages and the qualifying-only toggle across visits.
 try {
   const saved = JSON.parse(localStorage.getItem("ages") || "null");
@@ -340,6 +414,7 @@ async function load() {
   ]);
   if (ev.error) { $("#board").innerHTML = `<div class="empty">Couldn't load events: ${ev.error.message}. Check the anon key and that the tourneyscan schema is exposed in the Data API.</div>`; return; }
   events = ev.data || [];
+  applyLoc();
   for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
   const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
   if (latest) $("#updated").textContent = "Updated " + new Date(latest).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -383,9 +458,9 @@ function render() {
   const agesOf = (e) => ages.filter((a) => (e.divisions || []).includes(a));
   const qualifies = (e) => agesOf(e).some((a) => countOf(e, a) >= minTeams);
 
-  // distance_miles is null for events we couldn't geocode (out of state);
-  // don't let +null become 0 miles.
-  const miles = (e) => (e.distance_miles == null ? null : +e.distance_miles);
+  // e.miles is computed from the chosen location; null when the event had no
+  // coordinates (couldn't be geocoded), which keeps it off the board.
+  const miles = (e) => e.miles;
   if (!ages.length) {
     $("#tally").innerHTML = "";
     $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, 13U, or 14U above to see tournaments.</div>`;
@@ -395,7 +470,7 @@ function render() {
   const qual = shown.filter(qualifies);
   const label = listAges(ages);
   $("#tally").innerHTML = shown.length
-    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${label} event${shown.length === 1 ? "" : "s"} in range`
+    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${label} event${shown.length === 1 ? "" : "s"} within ${maxDist} mi of ${esc(loc.label)}`
     : "";
 
   if (!shown.length) {
@@ -447,7 +522,7 @@ function render() {
         <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}</div>
         ${chips ? `<div class="ages">${chips}</div>` : ""}
       </div>
-      <div class="dist"><b>${e.distance_miles}</b> mi</div>
+      <div class="dist"><b>${e.miles}</b> mi</div>
       <div class="count${mine.length > 1 ? " multi" : ""}">${tiers}</div>
     </a>`;
   }

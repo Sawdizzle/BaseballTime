@@ -1,20 +1,22 @@
-import { normDivisions, sleep, hasTrackedDivision, UA, SANGER_ZIP } from "./util.js";
+import { normDivisions, sleep, hasTrackedDivision, UA } from "./util.js";
 
 // USSSA via usssa.com's public JSON API. (The per-state WordPress sites,
 // txbaseball.usssa.com etc., return 403 to GitHub Actions' IP range, but the
 // main site's API answers fine — and it can search by zip + radius, which is
 // exactly the question this app asks.)
 //
-//   eventSearchSimpleV11  — events within `mile` of `zip` for a season; needs
-//                           the static page token below (window.apiAccessToken
-//                           on usssa.com/baseball/eventSearch/).
+//   eventSearchSimpleV11  — events for a season in a state; needs the static
+//                           page token below (window.apiAccessToken on
+//                           usssa.com/baseball/eventSearch/).
 //   getEventSearchSeasons — season IDs per sport; we pick the current one.
 //   getEventTeams         — every division of an event with its team list,
 //                           which is where the exact per-age counts come from.
 const API = "https://www.usssa.com/api/";
 const TOKEN = "eventSearchV4!!!Get";
 const SPORT_ID = 11; // baseball
-const RADIUS_MILES = 200; // matches the dashboard's distance slider
+// USSSA StateIDs (from getStatesNoSplit). The dashboard lets people pick any
+// location, so we take whole states rather than a radius around Sanger.
+const STATES = { TX: 77, OK: 73 };
 const HEADERS = { "User-Agent": UA, Accept: "*/*" };
 
 async function api(params) {
@@ -41,8 +43,15 @@ const parseDivisions = (s) => normDivisions(String(s || "").split("#").map((x) =
 
 export async function scrapeUSSSA({ drillDown = true, log = console.error } = {}) {
   const seasonID = await currentSeasonId();
-  const data = await api({ action: "eventSearchSimpleV11", sportID: SPORT_ID, seasonID, zip: SANGER_ZIP, mile: RADIUS_MILES, token: TOKEN });
-  const results = Array.isArray(data?.results) ? data.results : [];
+  const byId = new Map();
+  for (const [abbr, stateID] of Object.entries(STATES)) {
+    const data = await api({ action: "eventSearchSimpleV11", sportID: SPORT_ID, seasonID, stateID, token: TOKEN });
+    const rows = Array.isArray(data?.results) ? data.results : [];
+    log(`USSSA: ${abbr} → ${rows.length} events`);
+    for (const r of rows) if (!byId.has(r.ID)) byId.set(r.ID, r);
+    await sleep(200);
+  }
+  const results = [...byId.values()];
   if (!results.length) throw new Error("USSSA: search returned no events — token or API changed?");
 
   const events = results.map((r) => ({
@@ -62,7 +71,7 @@ export async function scrapeUSSSA({ drillDown = true, log = console.error } = {}
     event_url: `https://www.usssa.com/baseball/event_home/?eventID=${r.ID}`,
     event_status: r.stature || "Tournament",
   }));
-  log(`USSSA: ${events.length} events within ${RADIUS_MILES} mi of ${SANGER_ZIP}`);
+  log(`USSSA: ${events.length} events across ${Object.keys(STATES).join("+")}`);
 
   if (drillDown) {
     const targets = events.filter((e) => hasTrackedDivision(e.divisions) && e.total_registered > 0);
