@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
 <title>Baseball Time in TX</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -41,7 +43,8 @@
     padding: calc(14px + env(safe-area-inset-top)) 20px 16px;
     border-bottom: 4px solid var(--feather);
   }
-  .masthead { max-width: 980px; margin: 0 auto; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .masthead { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .masthead .logo { height: 52px; width: auto; flex: none; }
   .masthead h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .02em; }
   .masthead h1 span { color: var(--feather); }
   .masthead p { margin: 0; font-size: 14px; color: #b9d3ea; }
@@ -137,6 +140,7 @@
 <body>
 <header>
   <div class="masthead">
+    <img class="logo" src="logo.png" alt="" width="52" height="52">
     <h1>Baseball Time <span>in TX</span></h1>
     <p>10U–14U tournaments with open brackets near Sanger, TX — NCS, PAC &amp; PPS, checked twice daily</p>
     <div class="updated" id="updated"></div>
