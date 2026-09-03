@@ -1,3 +1,6 @@
 {
-  "outputDirectory": "site"
+  "outputDirectory": "site",
+  "rewrites": [
+    { "source": "/calendar.ics", "destination": "/api/calendar" }
+  ]
 }

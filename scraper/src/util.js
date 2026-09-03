@@ -128,3 +128,43 @@ export function normDivisions(list) {
 // Age divisions we drill into for exact per-division team counts.
 export const TRACKED_DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
 export const hasTrackedDivision = (divisions) => divisions.some((d) => TRACKED_DIVISIONS.includes(d));
+
+// Skill class inside an age bracket. Sources spell these a dozen ways ("Op",
+// "OPEN", "AA", "Maj", "D3", "REC"), and the difference matters: a 10U Open
+// bracket with one team and a 10U AA bracket with eleven are not the same
+// tournament to a coach. Returns null when there's no class to speak of.
+export function normClass(raw) {
+  const s = String(raw || "").trim().replace(/[()]/g, "").trim();
+  if (!s) return null;
+  const key = s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const MAP = {
+    OP: "Open", OPEN: "Open",
+    MAJ: "Major", MAJOR: "Major",
+    AAA: "AAA", AA: "AA", A: "A", B: "B", C: "C",
+    REC: "Rec", RECREATIONAL: "Rec",
+    ALLSTAR: "All-Star", ALL: "All-Star",
+    D1: "D1", D2: "D2", D3: "D3",
+    CP: "Coach Pitch", MP: "Machine Pitch", TB: "T-Ball",
+    ELITE: "Elite", SELECT: "Select", CLASSIC: "Classic",
+  };
+  if (MAP[key]) return MAP[key];
+  // Unknown but short and plausible: keep it as written rather than lose it.
+  return s.length <= 14 ? s : null;
+}
+
+// Fold a {age: {class: n}} tree down to {age: total} for the headline number.
+export function totalsByAge(classCounts) {
+  const out = {};
+  for (const [age, classes] of Object.entries(classCounts || {})) {
+    out[age] = Object.values(classes).reduce((a, b) => a + (b || 0), 0);
+  }
+  return out;
+}
+
+// Record one division's teams under its age and class.
+export function addClassCount(classCounts, age, cls, teams) {
+  if (!age) return;
+  const bucket = (classCounts[age] = classCounts[age] || {});
+  const key = cls || "Open";
+  bucket[key] = (bucket[key] || 0) + (teams || 0);
+}

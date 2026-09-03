@@ -98,6 +98,7 @@ async function main() {
       total_registered: e.total_registered,
       teams_14u: e.teams_14u ?? 0,
       division_counts: e.division_counts,
+      class_counts: e.class_counts ?? {},
     }))
     .filter((s) => s.event_id);
   const { error: snapErr } = await supabase

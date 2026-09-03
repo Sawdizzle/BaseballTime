@@ -1,4 +1,4 @@
-import { normDivisions, sleep, hasTrackedDivision, UA } from "./util.js";
+import { normDivisions, sleep, hasTrackedDivision, UA, normClass, addClassCount, totalsByAge } from "./util.js";
 
 // USSSA via usssa.com's public JSON API. (The per-state WordPress sites,
 // txbaseball.usssa.com etc., return 403 to GitHub Actions' IP range, but the
@@ -67,6 +67,7 @@ export async function scrapeUSSSA({ drillDown = true, log = console.error } = {}
     total_registered: parseInt(r.teamCount, 10) || 0,
     teams_14u: null,
     division_counts: {},
+    class_counts: {},
     cost: null,
     event_url: `https://www.usssa.com/baseball/event_home/?eventID=${r.ID}`,
     event_status: r.stature || "Tournament",
@@ -82,7 +83,8 @@ export async function scrapeUSSSA({ drillDown = true, log = console.error } = {}
         while (queue.length) {
           const ev = queue.shift();
           try {
-            ev.division_counts = await divisionCounts(ev.source_event_id);
+            ev.class_counts = await divisionCounts(ev.source_event_id);
+            ev.division_counts = totalsByAge(ev.class_counts);
             if (ev.divisions.includes("14U") && Object.keys(ev.division_counts).length) {
               ev.teams_14u = ev.division_counts["14U"] ?? 0;
             }
@@ -97,16 +99,16 @@ export async function scrapeUSSSA({ drillDown = true, log = console.error } = {}
   return events;
 }
 
-// Per-age team counts: divisions carry an age code like "14Op", "12AA",
+// Per-age, per-class team counts: divisions carry an age code like "14Op", "12AA",
 // "10Maj"; classes within an age roll up into one key.
 async function divisionCounts(eventID) {
   const data = await api({ action: "getEventTeams", eventID });
-  const counts = {};
+  const classCounts = {};
   for (const d of Array.isArray(data?.divisions) ? data.divisions : []) {
-    const m = String(d.age || "").match(/^(\d{1,2})/);
+    // "12AA", "14Op", "10Maj" — digits are the age, the rest is the class.
+    const m = String(d.age || "").match(/^(\d{1,2})\s*(.*)$/);
     if (!m) continue;
-    const key = `${m[1]}U`;
-    counts[key] = (counts[key] || 0) + (Array.isArray(d.teams) ? d.teams.length : 0);
+    addClassCount(classCounts, `${m[1]}U`, normClass(m[2]), Array.isArray(d.teams) ? d.teams.length : 0);
   }
-  return counts;
+  return classCounts;
 }

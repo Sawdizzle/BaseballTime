@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { normDivisions, sleep, UA } from "./util.js";
+import { normDivisions, sleep, UA, normClass, addClassCount, totalsByAge } from "./util.js";
 
 // Perfect Game's tournament schedule is a Telerik RadGrid on ASP.NET WebForms.
 // There is no JSON API and no working server-side state filter, so we walk the
@@ -175,6 +175,7 @@ function parsePage($, byId, keep) {
         total_registered: group.total,
         teams_14u: null,
         division_counts: {},
+        class_counts: {},
         cost: null,
         event_url: `${BASE}/Schedule/GroupedEvents.aspx?gid=${group.gid}`,
         event_status: "Tournament",
@@ -185,8 +186,14 @@ function parsePage($, byId, keep) {
     if (start && (!ev.start_date || start < ev.start_date)) ev.start_date = start;
     if (end && (!ev.end_date || end > ev.end_date)) ev.end_date = end;
     ev.divisions = normDivisions([...ev.divisions, age]);
+    // Link text is "12U (AAA) Event Info" or "7U (Open) (CP) Event Info"; the
+    // first bracketed group is the skill class, any second is the pitch format.
+    const cls = normClass(text(tds.eq(2)).match(/\(([^)]+)\)/)?.[1]);
     const n = parseInt(text(tds.eq(3)), 10);
-    if (Number.isFinite(n)) ev.division_counts[age] = (ev.division_counts[age] || 0) + n;
+    if (Number.isFinite(n)) {
+      addClassCount(ev.class_counts, age, cls, n);
+      ev.division_counts = totalsByAge(ev.class_counts);
+    }
     if (age === "14U" && Object.keys(ev.division_counts).length) ev.teams_14u = ev.division_counts["14U"] ?? 0;
   });
 }

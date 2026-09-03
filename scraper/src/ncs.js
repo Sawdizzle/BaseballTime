@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { fetchHtml, parseNcsDates, splitCityState, normDivisions, sleep, hasTrackedDivision } from "./util.js";
+import { fetchHtml, parseNcsDates, splitCityState, normDivisions, sleep, hasTrackedDivision, normClass, addClassCount, totalsByAge } from "./util.js";
 
 const BASE = "https://www.playncs.com";
 const LIST_URL = `${BASE}/baseball/Regions/texas/Events`;
@@ -44,6 +44,7 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
       total_registered: registered,
       teams_14u: null,
       division_counts: {},
+      class_counts: {},
       cost: null,
       event_url: `${BASE}${href}`,
       event_status: $el.find(".stature").first().text().trim() || "Tournament",
@@ -59,7 +60,8 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
         while (queue.length) {
           const ev = queue.shift();
           try {
-            ev.division_counts = await ncsDivisionCounts(ev.source_event_id, ev.slug);
+            ev.class_counts = await ncsDivisionCounts(ev.source_event_id, ev.slug);
+            ev.division_counts = totalsByAge(ev.class_counts);
             // An empty result means the team list isn't published; leave the
             // 14U count null so the dashboard shows the ≈ all-ages total.
             if (ev.divisions.includes("14U") && Object.keys(ev.division_counts).length) {
@@ -81,12 +83,13 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
 async function ncsDivisionCounts(id, slug) {
   const html = await fetchHtml(`${BASE}/baseball/Events/WhosComing/${id}/${slug}`);
   const $ = cheerio.load(html);
-  const counts = {};
+  const classCounts = {};
   $(".panel").each((_, panel) => {
     const division = $(panel).find(".division").first().text().trim();
-    const m = division.match(/^(\d{1,2})U\b/i);
+    const m = division.match(/^(\d{1,2})U\b\s*(.*)$/i);
     if (!m) return;
     const key = `${m[1]}U`;
+    const cls = normClass(m[2]);
     let count = 0;
     $(panel)
       .find("table tbody tr")
@@ -95,7 +98,7 @@ async function ncsDivisionCounts(id, slug) {
         const isOpen = cell.find("em").length && /open/i.test(cell.text());
         if (cell.text().trim() && !isOpen) count += 1;
       });
-    counts[key] = (counts[key] || 0) + count;
+    addClassCount(classCounts, key, cls, count);
   });
-  return counts;
+  return classCounts;
 }

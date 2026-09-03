@@ -125,6 +125,8 @@
 
   .tally { max-width: 980px; margin: 4px auto 0; padding: 0 20px; font-size: 15px; color: var(--ink-soft); }
   .tally strong { color: var(--pencil); font-weight: 800; }
+  .subscribe { max-width: 980px; margin: 2px auto 0; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
+  .subscribe a { color: var(--pencil); font-weight: 600; }
 
   .board { max-width: 980px; margin: 10px auto 60px; padding: 0 12px; }
   .month { margin: 26px 8px 8px; font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
@@ -163,6 +165,8 @@
   .tier .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .tier .lbl { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
   .tier .delta { font-size: 12px; font-weight: 600; color: var(--pencil); }
+  .tier .classes { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; white-space: nowrap; }
+  .tier .classes b { color: var(--ink); font-weight: 800; }
   .count.multi .tier .n { font-size: 18px; }
   .tier.q .n { color: var(--pencil); }
   .tier.q .lbl { color: var(--pencil); }
@@ -322,8 +326,9 @@
 </details>
 
 <div class="tally" id="tally"></div>
+<p class="subscribe"><a id="icsLink" href="#" title="Subscribe in Apple Calendar, Google Calendar or Outlook">Add these to your calendar</a> — the feed keeps itself up to date.</p>
 <main class="board" id="board"></main>
-<p class="note">Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
+<p class="note">Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
 
 <div class="support">
   <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.
@@ -441,7 +446,20 @@ async function load() {
   applyLoc();
   for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
   const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
-  if (latest) $("#updated").textContent = "Updated " + new Date(latest).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  if (latest) {
+    const el = $("#updated");
+    el.title = new Date(latest).toLocaleString();
+    const show = () => {
+      const mins = Math.round((Date.now() - latest) / 60000);
+      el.textContent = mins < 2 ? "Checked just now"
+        : mins < 60 ? `Checked ${mins} min ago`
+        : mins < 120 ? "Checked 1 hour ago"
+        : mins < 1440 ? `Checked ${Math.round(mins / 60)} hours ago`
+        : `Checked ${Math.round(mins / 1440)} days ago`;
+    };
+    show();
+    setInterval(show, 60000);
+  }
   render();
 }
 
@@ -485,6 +503,10 @@ function render() {
   // e.miles is computed from the chosen location; null when the event had no
   // coordinates (couldn't be geocoded), which keeps it off the board.
   const miles = (e) => e.miles;
+  const ics = new URLSearchParams({ ages: ages.join(","), miles: String(maxDist), min: String(minTeams), orgs: [...orgs].join(",") });
+  if (loc && isFinite(loc.lat)) { ics.set("lat", loc.lat.toFixed(4)); ics.set("lng", loc.lng.toFixed(4)); }
+  $("#icsLink").href = `/calendar.ics?${ics}`;
+
   if (!ages.length) {
     $("#tally").innerHTML = "";
     $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, 13U, or 14U above to see tournaments.</div>`;
@@ -523,9 +545,17 @@ function render() {
         const exact = exactCount(e, a);
         const n = exact ?? e.total_registered;
         const delta = exact != null ? weekDelta(e.id, exact, a) : 0;
+        // A single age can hold several skill classes with very different
+        // numbers (10U Open 1, 10U AA 11); the age total alone would mislead.
+        const classes = e.class_counts?.[a] || {};
+        const names = Object.keys(classes);
+        const breakdown = names.length > 1
+          ? `<div class="classes">${names.sort((x, y) => classes[y] - classes[x]).map((c) => `${esc(c)} <b>${classes[c]}</b>`).join(" · ")}</div>`
+          : "";
         return `<div class="tier${n >= minTeams ? " q" : ""}">
           <div class="n">${n}</div>
           <div class="lbl">${exact == null ? `<span class="approx">${a} ≈ all</span>` : `${a} teams`}</div>
+          ${breakdown}
           ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
         </div>`;
       })

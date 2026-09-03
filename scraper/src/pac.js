@@ -44,6 +44,7 @@ export async function scrapePAC({ log = console.error } = {}) {
       total_registered: registered,
       teams_14u: null,
       division_counts: {},
+      class_counts: {},
       cost: null,
       event_url: href.startsWith("http") ? href : `https://playpacsports.com${href}`,
       event_status: col("stature").text().trim() || "Tournament",

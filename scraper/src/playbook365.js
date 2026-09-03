@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { normDivisions, sleep, UA } from "./util.js";
+import { normDivisions, sleep, UA, normClass, addClassCount, totalsByAge } from "./util.js";
 
 // Playbook365 powers a whole family of tournament sites. Every tenant answers
 // the same POST /ajax-events with a Laravel CSRF token, and the response's
@@ -86,12 +86,13 @@ async function tenant({ org, host }, keep) {
       if (/fastpitch|softball/i.test(e.name || "")) continue;
 
       // Per-age counts: several class rows can share an age (10U AA, 10U Major).
-      const counts = {};
+      const classCounts = {};
       for (const d of Array.isArray(e.divisions) ? e.divisions : []) {
         const age = String(d.label || "").match(/^(\d{1,2})U/i)?.[0]?.toUpperCase();
         if (!age) continue;
-        counts[age] = (counts[age] || 0) + (num(d.teams_registered) ?? 0);
+        addClassCount(classCounts, age, normClass(d.level || d.team_label), num(d.teams_registered) ?? 0);
       }
+      const counts = totalsByAge(classCounts);
       const divisions = normDivisions(Object.keys(counts));
       const venue = Array.isArray(e.venues) && e.venues.length ? e.venues[0].name || null : null;
       events.push({
@@ -107,6 +108,7 @@ async function tenant({ org, host }, keep) {
         total_registered: num(e.teams_registered) ?? 0,
         teams_14u: divisions.includes("14U") ? counts["14U"] ?? 0 : null,
         division_counts: counts,
+        class_counts: classCounts,
         cost: e.cost_str || null,
         // The API gives venue coordinates, so these skip geocoding entirely.
         lat: num(e.latitude),
