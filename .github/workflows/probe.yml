@@ -1,0 +1,13 @@
+name: probe (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for ua in "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TourneyScan/1.0" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"; do
+            for h in youth.2dsports.org go.play24sports.com events.playrbi.com events.fivetool.org baseball.playpps.com; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" -A "$ua" --max-time 25 "https://$h/")
+              echo "RESULT $code ${ua:40:30} $h"
+            done
+          done
