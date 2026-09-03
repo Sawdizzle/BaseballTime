@@ -3,3 +3,7 @@ node_modules/
 *.log
 .DS_Store
 .claude/
+
+# Outreach drafts and post copy: contains a personal email address and
+# family details, and this repo is public. Kept local on purpose.
+docs/

@@ -180,7 +180,23 @@
     text-decoration: none;
     color: inherit;
   }
-  .game:focus-visible { outline: 3px solid var(--pencil); outline-offset: 2px; }
+  /* The whole card is clickable via a stretched overlay link, which leaves the
+     Directions link and the mark button as real, separately tappable controls. */
+  .game { position: relative; }
+  .rowlink { position: absolute; inset: 0; z-index: 1; border-radius: 3px; }
+  .rowlink:focus-visible { outline: 3px solid var(--pencil); outline-offset: 2px; }
+  .what, .dist, .count, .mark, .dirs { position: relative; z-index: 2; }
+  .what, .count { pointer-events: none; }
+  .mark, .dirs, .age { pointer-events: auto; }
+  .dirs { display: inline-block; margin-top: 3px; font-size: 12.5px; font-weight: 600; color: var(--pencil); }
+  .mark {
+    margin-top: 6px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    background: transparent; color: var(--ink-soft);
+    border: 1.5px solid var(--grid); border-radius: 999px; padding: 4px 11px;
+  }
+  .mark:hover { border-color: var(--pencil); color: var(--pencil); }
+  .game.going { border-left-color: #1f7a4d; background: color-mix(in srgb, #1f7a4d 7%, var(--row)); }
+  .game.going .mark { background: #1f7a4d; border-color: #1f7a4d; color: #fff; }
   .game.qualifies {
     border-left-color: var(--pencil);
     border-color: color-mix(in srgb, var(--pencil) 45%, var(--grid));
@@ -347,7 +363,7 @@
   </form>
   <div class="control dist-ctl">
     <b>Distance</b>
-    <input type="range" id="maxDist" min="0" max="200" step="5" value="80">
+    <input type="range" id="maxDist" min="0" max="17" step="1" value="9">
     <output id="distOut">up to 80 mi</output>
   </div>
   <div class="control">
@@ -452,6 +468,9 @@ const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
 const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
+// Slider stops rather than a linear range: fine control where people actually
+// choose (30-100 mi) without giving up the long hauls a travel team will drive.
+const DIST_STOPS = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 125, 150, 200, 250, 300, 400, 500];
 let events = [], baselines = new Map();
 // Rows rendered at a time; the rest is one tap away. Smaller on phones so the
 // footer (contact address, support link) stays a few swipes off rather than a
@@ -461,6 +480,13 @@ let events = [], baselines = new Map();
 const PAGE = (window.innerWidth || 1024) <= 620 ? 25 : 40;
 let visible = PAGE;
 let currentFilters = {};   // what an email alert would watch, kept in step with the board
+
+// Events the reader says they're registered for. Device-local, like players.
+let registered = new Set();
+try { registered = new Set(JSON.parse(localStorage.getItem("registered") || "[]")); } catch {}
+const saveRegistered = () => {
+  try { localStorage.setItem("registered", JSON.stringify([...registered])); } catch {}
+};
 
 // ---- Where to measure distance from. Default is Sanger, TX; the user can
 // set any city or US zip. Stored per device. Distances are computed here
@@ -532,6 +558,8 @@ try {
   const win = localStorage.getItem("win");
   const winEl = win && document.querySelector(`[data-win="${win}"]`);
   if (winEl) winEl.checked = true;
+  const dist = localStorage.getItem("dist");
+  if (dist !== null && DIST_STOPS[+dist] !== undefined) $("#maxDist").value = dist;
 } catch {}
 const selectedAges = () => DIVISIONS.filter((a) => $(`[data-age="${a}"]`).checked);
 const windowDays = () => +(document.querySelector("[data-win]:checked")?.dataset.win ?? 0);
@@ -593,7 +621,7 @@ function weekDelta(id, current, div) {
 }
 
 function render() {
-  const maxDist = +$("#maxDist").value;
+  const maxDist = DIST_STOPS[+$("#maxDist").value] ?? 80;
   const minTeams = +$("#minTeams").value;
   const ages = selectedAges();
   const qualOnly = $("#qualOnly").checked;
@@ -605,6 +633,7 @@ function render() {
     localStorage.setItem("ages", JSON.stringify(ages));
     localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
     localStorage.setItem("win", String(windowDays()));
+    localStorage.setItem("dist", $("#maxDist").value);
   } catch {}
   const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
   $("#distOut").textContent = `up to ${maxDist} mi`;
@@ -713,16 +742,21 @@ function render() {
     const sameMonth = endF && endF.month === d.month && endF.year === d.year;
     const endD = endF && sameMonth ? "–" + endF.day : "";
     const thru = endF && !sameMonth ? `thru ${endF.month.slice(0, 3)} ${endF.day}` : "";
-    html += `<a class="game${q ? " qualifies" : ""}" href="${e.event_url}" target="_blank" rel="noopener">
+    const where = [e.venue, e.city, e.state].filter(Boolean).join(", ");
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`;
+    const going = registered.has(e.id);
+    html += `<div class="game${q ? " qualifies" : ""}${going ? " going" : ""}">
+      <a class="rowlink" href="${e.event_url}" target="_blank" rel="noopener" aria-label="${esc(e.name)} — open registration page"></a>
       <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div>${thru ? `<div class="thru">${thru}</div>` : ""}</div>
       <div class="what">
         <div class="name">${esc(e.name)}</div>
         <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}${turf ? '<span class="turf" title="The organizer advertises turf, so it is likelier to play through rain">Turf</span>' : ""}</div>
         ${chips ? `<div class="ages">${chips}</div>` : ""}
+        <button class="mark" type="button" data-mark="${e.id}" aria-pressed="${going}">${going ? "★ Registered" : "☆ Mark as registered"}</button>
       </div>
-      <div class="dist"><b>${e.miles}</b> mi</div>
+      <div class="dist"><b>${e.miles}</b> mi${where ? `<br><a class="dirs" href="${mapsUrl}" target="_blank" rel="noopener">Directions</a>` : ""}</div>
       <div class="count${mine.length > 1 ? " multi" : ""}">${tiers}</div>
-    </a>`;
+    </div>`;
   }
   $("#board").innerHTML = html + "</div>";
 }
@@ -967,6 +1001,15 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 function rerender() { visible = PAGE; render(); }
 for (const el of ["#maxDist", "#qualOnly", "#minTeams"].map($)) el.addEventListener("input", rerender);
 for (const el of document.querySelectorAll("[data-org], [data-age], [data-win]")) el.addEventListener("input", rerender);
+$("#board").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-mark]");
+  if (!btn) return;
+  e.preventDefault();
+  const id = btn.dataset.mark;
+  if (registered.has(id)) registered.delete(id); else registered.add(id);
+  saveRegistered();
+  render();
+});
 $("#moreBtn").addEventListener("click", () => {
   const y = window.scrollY;
   visible += PAGE;
