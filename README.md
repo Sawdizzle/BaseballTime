@@ -13,6 +13,9 @@ project), and serving a filterable dashboard from `/site` on Vercel.
 - `.github/workflows/scrape.yml` — runs the scraper at 7 AM and 7 PM Central,
   plus manual runs via the Actions tab (workflow_dispatch).
 - `site/` — static dashboard (no build step). Vercel Root Directory = `site`.
+  Installable as a home-screen app: `manifest.webmanifest`, `sw.js` (shell
+  cache only; data is always live), and the icon PNGs rendered from
+  `icon.svg`. Re-export the PNGs from `icon.svg` if the icon changes.
 
 ## How counts work
 
