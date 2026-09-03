@@ -61,11 +61,16 @@ async function main() {
   });
 
   // 1. Confirmations for anyone who signed up since the last run.
+  // confirm_sent_at is only stamped on success, so a failed send retries on the
+  // next run. Bounded to a week so a permanently bad address doesn't retry
+  // forever.
+  const retryFloor = new Date(Date.now() - 7 * 86400e3).toISOString();
   const { data: pending, error: pErr } = await db
     .from("alert_subscriptions")
     .select("id,email,token")
     .eq("status", "pending")
-    .is("confirm_sent_at", null);
+    .is("confirm_sent_at", null)
+    .gte("created_at", retryFloor);
   if (pErr) throw pErr;
   for (const sub of pending || []) {
     const url = `${SITE}/confirm?t=${sub.token}`;

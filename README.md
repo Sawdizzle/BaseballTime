@@ -66,8 +66,14 @@ stays green.
 3. Optional overrides, as repo secrets or env vars: `ALERT_FROM` (defaults to
    `alerts@youthbaseballtime.com`), `ALERT_REPLY_TO`, `ALERT_SITE`.
 
-Until the domain is verified, Resend only delivers to your own address, which is
-enough to test the whole loop.
+Until the domain is verified Resend rejects every send with a 403 naming the
+domain, so step 1 is not optional. To test before the DNS propagates, set
+`ALERT_FROM` to `Baseball Time <onboarding@resend.dev>`; Resend accepts that
+sender but only delivers to the account owner's address. Remove the override
+once the domain is verified.
+
+A failed confirmation is not lost: `confirm_sent_at` is only stamped on success,
+so the next run retries, bounded to signups from the last seven days.
 
 ## When it breaks
 
