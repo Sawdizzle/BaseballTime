@@ -141,6 +141,9 @@
   <label class="band control" style="flex-direction:row;align-items:center;">
     <input type="checkbox" id="bandOnly"> <b>50–80 mi band only</b>
   </label>
+  <label class="band control" style="flex-direction:row;align-items:center;">
+    <input type="checkbox" id="qualOnly"> <b>Qualifying only</b>
+  </label>
   <div class="control">
     <b>Age</b>
     <select id="ageDiv">
@@ -178,10 +181,11 @@ const $ = (s) => document.querySelector(s);
 const DIVISIONS = ["10U", "11U", "12U", "14U"];
 let events = [], deltas = new Map();
 
-// Remember the last-picked age across visits.
+// Remember the last-picked age and the qualifying-only toggle across visits.
 try {
   const saved = localStorage.getItem("ageDiv");
   if (DIVISIONS.includes(saved)) $("#ageDiv").value = saved;
+  $("#qualOnly").checked = localStorage.getItem("qualOnly") === "1";
 } catch {}
 const currentDiv = () => $("#ageDiv").value;
 
@@ -234,8 +238,12 @@ function render() {
   const band = $("#bandOnly").checked;
   const minTeams = +$("#minTeams").value;
   const div = currentDiv();
+  const qualOnly = $("#qualOnly").checked;
   $("#ageLbl").textContent = div;
-  try { localStorage.setItem("ageDiv", div); } catch {}
+  try {
+    localStorage.setItem("ageDiv", div);
+    localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
+  } catch {}
   const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
   $("#distOut").textContent = band ? "50–80 mi" : `up to ${maxDist} mi`;
 
@@ -252,9 +260,14 @@ function render() {
     $("#board").innerHTML = `<div class="empty"><b>No ${div} events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
     return;
   }
+  const rows = qualOnly ? qual : shown;
+  if (!rows.length) {
+    $("#board").innerHTML = `<div class="empty"><b>No qualifying ${div} events in range.</b><br>Lower the minimum team count, widen the distance, or turn off “Qualifying only”.</div>`;
+    return;
+  }
 
   let html = "", lastMonth = "";
-  for (const e of shown) {
+  for (const e of rows) {
     const d = fmtDay(e.start_date);
     const monthKey = `${d.month} ${d.year}`;
     if (monthKey !== lastMonth) { html += `<h2 class="month">${monthKey}</h2>`; lastMonth = monthKey; }
@@ -283,7 +296,7 @@ function render() {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-for (const el of ["#maxDist", "#bandOnly", "#minTeams", "#ageDiv"].map($)) el.addEventListener("input", render);
+for (const el of ["#maxDist", "#bandOnly", "#qualOnly", "#minTeams", "#ageDiv"].map($)) el.addEventListener("input", render);
 for (const el of document.querySelectorAll("[data-org]")) el.addEventListener("input", render);
 load();
 </script>
