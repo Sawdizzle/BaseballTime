@@ -6,16 +6,24 @@ import { normDivisions, sleep, UA } from "./util.js";
 // `eventlist` array is structured JSON — including per-division team counts and
 // the venue's lat/lng — so there is no HTML to parse and no drill-down needed.
 //
-// Adding an org here is a one-line change. Five Tool Youth
-// (play.fivetoolyouth.org) is the same platform and by far the largest Texas
-// dataset, but its Cloudflare zone blocks servers; it goes in the moment they
-// allowlist us.
+// Adding an org here is a one-line change.
 export const TENANTS = [
   { org: "PPS", host: "baseball.playpps.com", name: "Premier Prospects Sports" },
   { org: "24S", host: "go.play24sports.com", name: "24 Sports" },
   { org: "RBI", host: "events.playrbi.com", name: "Rec Baseball Innovations" },
-  { org: "2DS", host: "youth.2dsports.org", name: "2D Sports" },
   { org: "FT", host: "events.fivetool.org", name: "Five Tool" },
+];
+
+// Same platform, same code would work, but both refuse our servers. Verified
+// from a GitHub Actions runner: 403 on every path regardless of user agent,
+// while both answer normally from a home connection — so it's IP-based, not
+// something a header can fix. Move these into TENANTS if they ever allowlist us.
+//   play.fivetoolyouth.org  Five Tool Youth — the largest Texas dataset by far
+//                           (~152 upcoming events, per-age counts), Cloudflare
+//   youth.2dsports.org      2D Sports — small Texas footprint (Burleson, Winnie)
+export const BLOCKED_TENANTS = [
+  { org: "FTY", host: "play.fivetoolyouth.org", name: "Five Tool Youth" },
+  { org: "2DS", host: "youth.2dsports.org", name: "2D Sports" },
 ];
 
 const MAX_PAGES = 20;
