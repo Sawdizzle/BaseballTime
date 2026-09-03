@@ -189,6 +189,9 @@
   .what, .count { pointer-events: none; }
   .mark, .dirs, .age { pointer-events: auto; }
   .dirs { display: inline-block; margin-top: 3px; font-size: 12.5px; font-weight: 600; color: var(--pencil); }
+  .wx { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; white-space: nowrap; }
+  .wx.wet { color: #1f6fb8; }
+  .wx.storm { color: #b3261e; }
   .mark {
     margin-top: 6px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
     background: transparent; color: var(--ink-soft);
@@ -442,7 +445,7 @@
 </form>
 <main class="board" id="board"></main>
 <div class="more" id="more" hidden><button type="button" id="moreBtn"></button></div>
-<p class="note">A <span class="turf">Turf</span> tag means the organizer advertises turf, which usually plays through rain when grass fields get called off. No organizer publishes the surface as data, so no tag means we don't know, not that it's grass. Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
+<p class="note">Weather shows for weekend events inside the next 16 days, which is as far as any forecast reaches. A <span class="turf">Turf</span> tag means the organizer advertises turf, which usually plays through rain when grass fields get called off. No organizer publishes the surface as data, so no tag means we don't know, not that it's grass. Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
 
 <div class="support">
   <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.
@@ -754,11 +757,12 @@ function render() {
         ${chips ? `<div class="ages">${chips}</div>` : ""}
         <button class="mark" type="button" data-mark="${e.id}" aria-pressed="${going}">${going ? "★ Registered" : "☆ Mark as registered"}</button>
       </div>
-      <div class="dist"><b>${e.miles}</b> mi${where ? `<br><a class="dirs" href="${mapsUrl}" target="_blank" rel="noopener">Directions</a>` : ""}</div>
+      <div class="dist"><b>${e.miles}</b> mi${where ? `<br><a class="dirs" href="${mapsUrl}" target="_blank" rel="noopener">Directions</a>` : ""}<div class="wx"${wxAttr(e)}></div></div>
       <div class="count${mine.length > 1 ? " multi" : ""}">${tiers}</div>
     </div>`;
   }
   $("#board").innerHTML = html + "</div>";
+  paintWeather();
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -897,6 +901,71 @@ matchMedia("(min-width: 700px)").addEventListener?.("change", (e) => { $("#filte
 function syncChips() {
   for (const cb of document.querySelectorAll(".chip input")) {
     cb.closest(".chip").classList.toggle("on", cb.checked);
+  }
+}
+
+// ---- Weather. Open-Meteo: free, no key, 16 days ahead. Only events inside
+// that window get a line, and only short ones — a league running to November
+// has no meaningful "chance of rain". Batched by location and cached for the
+// session so changing a filter doesn't refetch.
+const WX_DAYS = 16;
+const WX_MAX_LEN = 4;   // days; longer than a weekend and it's a league
+const wxCache = new Map();
+try { for (const [k, v] of JSON.parse(sessionStorage.getItem("wx") || "[]")) wxCache.set(k, v); } catch {}
+const wxKey = (lat, lng) => `${(+lat).toFixed(2)},${(+lng).toFixed(2)}`;
+const wxHorizon = () => new Date(Date.now() + WX_DAYS * 86400e3).toISOString().slice(0, 10);
+const daysBetween = (a, b) => Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400e3);
+
+function wxAttr(e) {
+  if (e.lat == null || e.lng == null || !e.start_date) return "";
+  if (e.start_date > wxHorizon() || e.start_date < new Date().toISOString().slice(0, 10)) return "";
+  const end = e.end_date || e.start_date;
+  if (daysBetween(e.start_date, end) > WX_MAX_LEN) return "";
+  return ` data-wx="${wxKey(e.lat, e.lng)}|${e.start_date}|${end}"`;
+}
+
+async function paintWeather() {
+  const nodes = [...document.querySelectorAll(".wx[data-wx]")];
+  if (!nodes.length) return;
+  const need = [...new Set(nodes.map((n) => n.dataset.wx.split("|")[0]))].filter((k) => !wxCache.has(k)).slice(0, 60);
+  if (need.length) {
+    const q = new URLSearchParams({
+      latitude: need.map((k) => k.split(",")[0]).join(","),
+      longitude: need.map((k) => k.split(",")[1]).join(","),
+      daily: "precipitation_probability_max,temperature_2m_max,weather_code",
+      forecast_days: String(WX_DAYS),
+      timezone: "auto",
+      temperature_unit: "fahrenheit",
+    });
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+      if (r.ok) {
+        const json = await r.json();
+        const arr = Array.isArray(json) ? json : [json];
+        need.forEach((k, i) => {
+          const d = arr[i]?.daily;
+          if (d) wxCache.set(k, { t: d.time, p: d.precipitation_probability_max, h: d.temperature_2m_max, c: d.weather_code });
+        });
+        try { sessionStorage.setItem("wx", JSON.stringify([...wxCache])); } catch {}
+      }
+    } catch { /* weather is a bonus; never break the board over it */ }
+  }
+  for (const n of nodes) {
+    const [key, start, end] = n.dataset.wx.split("|");
+    const d = wxCache.get(key);
+    if (!d) continue;
+    let precip = null, high = null, storm = false;
+    for (let i = 0; i < d.t.length; i++) {
+      if (d.t[i] < start || d.t[i] > end) continue;
+      if (d.p[i] != null) precip = Math.max(precip ?? 0, d.p[i]);
+      if (d.h[i] != null) high = Math.max(high ?? -999, d.h[i]);
+      if (d.c[i] >= 95) storm = true;   // WMO 95-99 is thunderstorm
+    }
+    if (precip == null && high == null) continue;
+    n.removeAttribute("data-wx");
+    n.className = "wx" + (storm ? " storm" : precip >= 50 ? " wet" : "");
+    n.textContent = [storm ? "Storms" : null, precip != null ? `${precip}% rain` : null, high != null ? `${Math.round(high)}°` : null]
+      .filter(Boolean).join(" · ");
   }
 }
 
