@@ -1,4 +1,4 @@
-const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TourneyScan/1.0";
+export const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TourneyScan/1.0";
 export const SANGER = { lat: 33.3632, lng: -97.1739 };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -56,6 +56,10 @@ export function haversineMiles(a, b) {
 
 const STATE_NAMES = { TX: "Texas", OK: "Oklahoma", NM: "New Mexico", LA: "Louisiana", AR: "Arkansas", MO: "Missouri", CO: "Colorado", KS: "Kansas" };
 
+// Metro-area labels that aren't real place names. DFW → roughly the metro
+// centre (DFW Airport), which is what a "DFW locations" event means in practice.
+const CITY_ALIASES = { "DFW|TX": { lat: 32.8998, lng: -97.0403 } };
+
 // Geocode a city via Open-Meteo (free, no key). Returns {lat,lng} or null.
 export async function geocodeCity(city, state) {
   const wantAdmin = STATE_NAMES[state] || state;
@@ -69,6 +73,8 @@ export async function geocodeCity(city, state) {
     .map((s) => s.trim())
     .filter(Boolean);
   for (const seg of segments) {
+    const alias = CITY_ALIASES[`${seg.toUpperCase()}|${state}`];
+    if (alias) return alias;
     try {
       const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(seg)}&count=10&language=en&format=json`;
       const res = await fetch(url, { headers: { "User-Agent": UA } });

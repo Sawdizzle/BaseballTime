@@ -1,33 +1,38 @@
 import * as cheerio from "cheerio";
-import { fetchHtml, parseSlashDates, normDivisions, sleep, hasTrackedDivision } from "./util.js";
+import { fetchHtml, parseSlashDates, normDivisions, sleep, hasTrackedDivision, UA } from "./util.js";
 
 const BASE = "https://baseball.playpps.com";
 
-// PPS (Playbook365): cards are .list-container[data-event-id] with schema.org
-// microdata (name, startDate, endDate, addressLocality/Region) plus a hidden
-// <select class="division"> listing age divisions. Each event's public /teams
-// page shows an exact per-division count pill — that's our per-age number.
-export async function scrapePPS({ drillDown = true, log = console.error } = {}) {
-  const landing = await fetchHtml(BASE);
-  const $l = cheerio.load(landing);
-  const seasonUrls = new Set();
-  $l("a[href*='/season/']").each((_, a) => {
-    const href = $l(a).attr("href");
-    if (href && !/high-school/i.test(href)) seasonUrls.add(href.startsWith("http") ? href : `${BASE}${href}`);
-  });
+// PPS (Playbook365): the landing page only embeds a few featured cards. The
+// real list is appended by an infinite-scroll POST to /ajax-events (20 per
+// page, Laravel CSRF-protected) — so we take the page's csrf token + session
+// cookie and page through that endpoint until it returns no HTML. Cards are
+// .list-container[data-event-id] with schema.org microdata (name, startDate,
+// endDate, addressLocality/Region) plus a hidden <select class="division">
+// listing age divisions. Each event's public /teams page shows an exact
+// per-division count pill — that's our per-age number.
+const MAX_PAGES = 20;
 
-  const pages = [landing];
-  for (const url of seasonUrls) {
-    try {
-      pages.push(await fetchHtml(url));
-    } catch (err) {
-      log(`PPS season fetch failed ${url}: ${err.message}`);
-    }
-  }
+export async function scrapePPS({ drillDown = true, log = console.error } = {}) {
+  const res = await fetch(BASE, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`${res.status} ${BASE}`);
+  const landing = await res.text();
+  const cookie = (res.headers.getSetCookie?.() || []).map((c) => c.split(";")[0]).join("; ");
+  const token = cheerio.load(landing)("meta[name='csrf-token']").attr("content");
+  if (!token) throw new Error("PPS: csrf-token meta tag not found — page layout changed?");
 
   const byId = new Map();
-  for (const html of pages) parseCards(html, byId, log);
+  parseCards(landing, byId, log); // featured cards, in case ajax paging breaks
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const html = await fetchEventsPage(page, token, cookie);
+    if (!html) break;
+    const before = byId.size;
+    parseCards(html, byId, log);
+    if (byId.size === before) break; // page repeated itself; don't loop forever
+    await sleep(300);
+  }
   const events = [...byId.values()];
+  if (!events.length) throw new Error("PPS: zero event cards parsed — page layout changed?");
 
   if (drillDown) {
     const targets = events.filter((e) => hasTrackedDivision(e.divisions) && e.slug);
@@ -46,6 +51,35 @@ export async function scrapePPS({ drillDown = true, log = console.error } = {}) 
     }
   }
   return events;
+}
+
+// PPS runs multi-venue metro events with no city on the card — just "DFW" or
+// nothing, with "dallas-fort-worth" / "dfw-locations" in the slug. Label those
+// "DFW area" so geocoding (which has a DFW alias) gives them a distance.
+function ppsCity(city, slug) {
+  if (/^dfw$/i.test(city) || (!city && /dfw|dallas-fort-worth/i.test(slug || ""))) return "DFW area";
+  return city || null;
+}
+
+// One page of the infinite-scroll list. Returns the card HTML, or "" when the
+// server says there's nothing more.
+async function fetchEventsPage(page, token, cookie) {
+  const body = new URLSearchParams({ page, layout: "medium", past_events: "false", events_exits: "", organization_id: "", _token: token });
+  const res = await fetch(`${BASE}/ajax-events`, {
+    method: "POST",
+    headers: {
+      "User-Agent": UA,
+      "X-Requested-With": "XMLHttpRequest",
+      "X-CSRF-TOKEN": token,
+      Cookie: cookie,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body,
+  });
+  if (!res.ok) throw new Error(`${res.status} ${BASE}/ajax-events page ${page}`);
+  const json = await res.json();
+  return typeof json.html === "string" ? json.html : "";
 }
 
 function parseCards(html, byId) {
@@ -88,7 +122,7 @@ function parseCards(html, byId) {
       name,
       start_date: start,
       end_date: end,
-      city: meta("addressLocality").trim() || null,
+      city: ppsCity(meta("addressLocality").trim(), slug),
       state: meta("addressRegion").trim() || "TX",
       venue: $c.find("[itemprop='location'] [itemprop='name']").first().attr("content") || null,
       divisions,
