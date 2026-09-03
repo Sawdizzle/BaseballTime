@@ -73,6 +73,34 @@
   .band { display: flex; gap: 6px; align-items: center; cursor: pointer; font-weight: 500; }
   .band input { accent-color: var(--pencil); }
 
+  /* My players */
+  .players { max-width: 980px; margin: 14px auto 0; padding: 0 20px; }
+  .players summary { cursor: pointer; font-weight: 800; font-size: 15px; letter-spacing: .04em; color: var(--ink-soft); list-style: none; display: flex; align-items: center; gap: 8px; }
+  .players summary::before { content: "▸"; font-size: 13px; }
+  .players[open] summary::before { content: "▾"; }
+  .players .hint { font-size: 13px; color: var(--ink-soft); margin: 6px 0 10px; }
+  .addplayer { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
+  .addplayer label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--ink-soft); }
+  .addplayer input { padding: 5px 7px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); min-width: 120px; }
+  .addplayer input[type=date] { min-width: 150px; }
+  .btn { font: inherit; font-weight: 700; border: 0; border-radius: 4px; padding: 7px 12px; cursor: pointer; background: var(--pencil); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--ink-soft); padding: 4px 6px; font-weight: 600; }
+  .player { background: var(--row); border: 1.5px solid var(--grid); border-left: 5px solid var(--dirt); border-radius: 3px; padding: 10px 14px; margin: 8px 0; }
+  .player .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .player .pname { font-weight: 800; font-size: 16.5px; }
+  .player .page { color: var(--ink-soft); font-size: 14px; }
+  .player .remove { margin-left: auto; }
+  .elig { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 14px; }
+  .elig .org { color: var(--dirt); font-weight: 600; }
+  .elig button { font: inherit; font-weight: 800; color: var(--pencil); background: color-mix(in srgb, var(--grid) 45%, transparent); border: 0; border-radius: 3px; padding: 1px 8px; cursor: pointer; }
+  .elig button.on { background: var(--pencil); color: #fff; }
+  .elig small { color: var(--ink-soft); font-size: 12px; }
+  .roster { margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .roster b { color: var(--ink); }
+  .roster .up { color: var(--pencil); font-weight: 700; }
+  .roster .pick { margin: 2px 0 0 0; padding: 0; list-style: none; }
+  .roster .pick li { margin: 2px 0; }
+
   .tally { max-width: 980px; margin: 4px auto 0; padding: 0 20px; font-size: 15px; color: var(--ink-soft); }
   .tally strong { color: var(--pencil); font-weight: 800; }
 
@@ -212,6 +240,7 @@
       <label><input type="checkbox" data-age="10U">10U</label>
       <label><input type="checkbox" data-age="11U">11U</label>
       <label><input type="checkbox" data-age="12U">12U</label>
+      <label><input type="checkbox" data-age="13U">13U</label>
       <label><input type="checkbox" data-age="14U" checked>14U</label>
     </div>
   </div>
@@ -228,6 +257,18 @@
     </div>
   </div>
 </div>
+
+<details class="players" id="players">
+  <summary>My players <span id="playerCount"></span></summary>
+  <p class="hint">Saved only on this device. Age divisions come from each org's cutoff rule; the NCS roster is looked up live from their public player search.</p>
+  <form class="addplayer" id="addPlayer">
+    <label>First name <input name="first" required maxlength="40" autocomplete="off"></label>
+    <label>Last name <input name="last" required maxlength="40" autocomplete="off"></label>
+    <label>Birthdate <input name="dob" type="date" required></label>
+    <button class="btn" type="submit">Add</button>
+  </form>
+  <div id="playerList"></div>
+</details>
 
 <div class="tally" id="tally"></div>
 <main class="board" id="board"></main>
@@ -250,7 +291,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
 const $ = (s) => document.querySelector(s);
-const DIVISIONS = ["10U", "11U", "12U", "14U"];
+const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
 let events = [], baselines = new Map();
 
 // Remember the picked ages and the qualifying-only toggle across visits.
@@ -310,6 +351,7 @@ function render() {
   const minTeams = +$("#minTeams").value;
   const ages = selectedAges();
   const qualOnly = $("#qualOnly").checked;
+  for (const b of document.querySelectorAll("[data-setage]")) b.classList.toggle("on", ages.includes(b.dataset.setage));
   try {
     localStorage.setItem("ages", JSON.stringify(ages));
     localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
@@ -328,7 +370,7 @@ function render() {
   const miles = (e) => (e.distance_miles == null ? null : +e.distance_miles);
   if (!ages.length) {
     $("#tally").innerHTML = "";
-    $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, or 14U above to see tournaments.</div>`;
+    $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, 13U, or 14U above to see tournaments.</div>`;
     return;
   }
   const shown = events.filter((e) => agesOf(e).length && orgs.has(e.org) && inRange(miles(e)));
@@ -395,6 +437,96 @@ function render() {
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---- My players: age eligibility per org + live NCS roster.
+// Season runs Aug 1 → Jul 31; "season year" is the year it ends in.
+const seasonEnd = (() => { const n = new Date(); return n.getMonth() >= 7 ? n.getFullYear() + 1 : n.getFullYear(); })();
+const ageOn = (dob, y, m, d) => {
+  const b = new Date(dob + "T12:00:00"), at = new Date(y, m - 1, d, 12);
+  let a = at.getFullYear() - b.getFullYear();
+  if (at < new Date(at.getFullYear(), b.getMonth(), b.getDate(), 12)) a -= 1;
+  return a;
+};
+// Each org's rule for the division a birthdate lands in this season.
+const ORG_RULES = [
+  { org: "NCS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `age on Apr 30, ${seasonEnd} (May 1 cutoff)` },
+  { org: "PPS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `May 1 cutoff, same as NCS; up to 2 grade exceptions per team` },
+  { org: "PAC", div: (dob) => ageOn(dob, seasonEnd - 1, 12, 31), rule: `age before Jan 1, ${seasonEnd} (season Aug 1–Jul 31)` },
+];
+const ageNow = (dob) => { const n = new Date(); const y = ageOn(dob, n.getFullYear(), n.getMonth() + 1, n.getDate()); const b = new Date(dob + "T12:00:00"); const m = ((n.getMonth() - b.getMonth()) + 12 + (n.getDate() < b.getDate() ? -1 : 0)) % 12; return `${y}y ${m}m`; };
+
+let players = [];
+try { players = JSON.parse(localStorage.getItem("players") || "[]"); } catch {}
+const savePlayers = () => { try { localStorage.setItem("players", JSON.stringify(players)); } catch {} };
+const ncsCache = new Map();
+
+async function ncsLookup(p) {
+  const key = p.ncsId ? `id:${p.ncsId}` : `name:${p.first}|${p.last}`;
+  if (ncsCache.has(key)) return ncsCache.get(key);
+  const q = p.ncsId ? `id=${encodeURIComponent(p.ncsId)}` : `first=${encodeURIComponent(p.first)}&last=${encodeURIComponent(p.last)}&state=TX`;
+  const job = fetch(`/api/player?${q}`).then((r) => r.json()).catch((e) => ({ error: e.message }));
+  ncsCache.set(key, job);
+  return job;
+}
+
+function renderPlayers() {
+  $("#playerCount").textContent = players.length ? `(${players.length})` : "";
+  const ages = selectedAges();
+  $("#playerList").innerHTML = players.map((p) => {
+    const elig = ORG_RULES.map(({ org, div, rule }) => {
+      const d = `${div(p.dob)}U`;
+      return `<span><span class="org">${org}</span> <button type="button" data-setage="${d}" class="${ages.includes(d) ? "on" : ""}" title="Show ${d} tournaments">${d}</button> <small>${rule}</small></span>`;
+    }).join("");
+    return `<div class="player" data-id="${p.id}">
+      <div class="head"><span class="pname">${esc(p.first)} ${esc(p.last)}</span><span class="page">${ageNow(p.dob)} · born ${new Date(p.dob + "T12:00:00").toLocaleDateString()}</span>
+        <button type="button" class="btn ghost remove" data-remove="${p.id}">Remove</button></div>
+      <div class="elig">${elig}</div>
+      <div class="roster" id="roster-${p.id}">Looking up NCS roster…</div>
+    </div>`;
+  }).join("") || `<p class="hint">No players yet. Add a name and birthdate to see which age group they land in for each org.</p>`;
+
+  for (const p of players) {
+    const box = $(`#roster-${p.id}`);
+    const eligible = ORG_RULES[0].div(p.dob);
+    ncsLookup(p).then((r) => {
+      if (!box.isConnected) return;
+      if (r.error) { box.innerHTML = `NCS lookup failed: ${esc(r.error)}`; return; }
+      if (r.roster) {
+        const active = r.roster.filter((x) => /active/i.test(x.status));
+        const rows = (active.length ? active : r.roster.slice(0, 1)).map((x) => {
+          const n = parseInt(x.division, 10);
+          const up = n > eligible ? ` <span class="up">playing up ${n - eligible}</span>` : "";
+          return `<b>${esc(x.team)}</b> (${esc(x.city)}) — ${esc(x.division)}, ${esc(x.season)} · ${esc(x.status)}${up}`;
+        });
+        box.innerHTML = rows.length ? `NCS roster: ${rows.join("<br>")}` : "On NCS, but no roster history yet.";
+        return;
+      }
+      const m = r.matches || [];
+      if (!m.length) { box.textContent = "Not found on NCS player search (Texas)."; return; }
+      box.innerHTML = `Several NCS players match — pick one:<ul class="pick">${m.map((x) => `<li><button type="button" class="btn ghost" data-pick="${p.id}:${x.id}">${esc(x.name)} · ${esc(x.state)} · ${esc(x.age)}</button></li>`).join("")}</ul>`;
+    });
+  }
+}
+
+$("#addPlayer").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const first = String(f.get("first") || "").trim(), last = String(f.get("last") || "").trim(), dob = String(f.get("dob") || "");
+  if (!first || !last || !dob) return;
+  players.push({ id: Date.now().toString(36), first, last, dob });
+  savePlayers();
+  e.target.reset();
+  renderPlayers();
+});
+$("#playerList").addEventListener("click", (e) => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.dataset.remove) { players = players.filter((p) => p.id !== t.dataset.remove); savePlayers(); renderPlayers(); }
+  else if (t.dataset.setage) { for (const cb of document.querySelectorAll("[data-age]")) cb.checked = cb.dataset.age === t.dataset.setage; render(); }
+  else if (t.dataset.pick) { const [pid, ncsId] = t.dataset.pick.split(":"); const p = players.find((x) => x.id === pid); if (p) { p.ncsId = ncsId; savePlayers(); renderPlayers(); } }
+});
+if (players.length) $("#players").open = true;
+renderPlayers();
 
 // ---- Install-to-home-screen prompt.
 // Android/desktop Chrome fire beforeinstallprompt, so we can offer a real

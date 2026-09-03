@@ -1,0 +1,9 @@
+{
+  "name": "baseballtime",
+  "private": true,
+  "type": "module",
+  "description": "Root deps are for the Vercel serverless functions in api/. The scraper has its own package.json.",
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}
