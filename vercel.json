@@ -1,6 +1,8 @@
 {
   "outputDirectory": "site",
   "rewrites": [
-    { "source": "/calendar.ics", "destination": "/api/calendar" }
+    { "source": "/calendar.ics", "destination": "/api/calendar" },
+    { "source": "/confirm", "destination": "/api/alerts?action=confirm" },
+    { "source": "/unsubscribe", "destination": "/api/alerts?action=unsubscribe" }
   ]
 }

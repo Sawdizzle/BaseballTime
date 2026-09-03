@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "scrape": "node src/index.js",
-    "dry": "DRY_RUN=1 node src/index.js"
+    "dry": "DRY_RUN=1 node src/index.js",
+    "alerts": "node src/alerts.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

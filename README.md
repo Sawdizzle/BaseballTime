@@ -38,6 +38,37 @@ doesn't publish team lists, so PAC rows carry the total across all ages and
 show ≈ on the dashboard. Tracked divisions live in `scraper/src/util.js`
 (`TRACKED_DIVISIONS`); the dashboard's Age picker mirrors that list.
 
+## Email alerts
+
+Readers can ask to be emailed when a **new** tournament matches the search they
+have on screen. Nothing is sent when there is nothing new.
+
+- `site/index.html` posts to the `tourneyscan.request_alerts` Postgres function.
+  That function is `SECURITY DEFINER`; the table itself is revoked from `anon`,
+  so the public key can create a pending signup but can never read an address
+  back out.
+- Double opt-in. The confirmation token only ever travels inside the email.
+  `/confirm` and `/unsubscribe` (see `api/alerts.js`) call the matching
+  functions. Every email carries the unsubscribe link.
+- `scraper/src/alerts.js` runs right after each scrape. It sends confirmations
+  to new signups, then a digest to confirmed subscribers who are due (daily is
+  20 h, weekly is 6.5 days), listing only events whose `first_seen` is newer
+  than that subscriber's last email.
+
+**Setup, one manual step.** The step is wired but dormant until a Resend key
+exists. It logs "RESEND_API_KEY not set — skipping" and exits 0, so the workflow
+stays green.
+
+1. Create a Resend account and verify `youthbaseballtime.com` by adding the DNS
+   records it gives you.
+2. Add the key as a repo secret:
+   `gh secret set RESEND_API_KEY`
+3. Optional overrides, as repo secrets or env vars: `ALERT_FROM` (defaults to
+   `alerts@youthbaseballtime.com`), `ALERT_REPLY_TO`, `ALERT_SITE`.
+
+Until the domain is verified, Resend only delivers to your own address, which is
+enough to test the whole loop.
+
 ## When it breaks
 
 If a site redesigns, that org's parser fails loudly and the Actions run goes

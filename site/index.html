@@ -155,6 +155,14 @@
   .tally strong { color: var(--pencil); font-weight: 800; }
   .subscribe { max-width: 980px; margin: 2px auto 0; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
   .subscribe a { color: var(--pencil); font-weight: 600; }
+  .alerts { max-width: 980px; margin: 8px auto 0; padding: 0 20px; }
+  .alerts > label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+  .alertrow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .alertrow input { flex: 1 1 200px; min-width: 0; padding: 8px 10px; border: 1.5px solid var(--grid); border-radius: 4px; background: var(--row); font: inherit; color: var(--ink); }
+  .alertrow select { padding: 8px 6px; border: 1.5px solid var(--grid); border-radius: 4px; background: var(--row); font: inherit; color: var(--ink); }
+  .alertnote { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+  .alertnote.err { color: #b3261e; font-weight: 600; }
+  .alertnote.ok { color: var(--pencil); font-weight: 700; }
 
   .board { max-width: 980px; margin: 10px auto 60px; padding: 0 12px; }
   .month { margin: 26px 8px 8px; font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
@@ -395,7 +403,22 @@
 </details>
 
 <div class="tally" id="tally"></div>
-<p class="subscribe"><a id="icsLink" href="#" title="Subscribe in Apple Calendar, Google Calendar or Outlook">Add these to your calendar</a> — the feed keeps itself up to date.</p>
+<p class="subscribe">
+  <a id="icsLink" href="#" title="Subscribe in Apple Calendar, Google Calendar or Outlook">Add these to your calendar</a>
+  · <a href="#" id="alertToggle">Email me new matches</a>
+</p>
+<form class="alerts" id="alertForm" hidden>
+  <label for="alertEmail">Email me when a new tournament matches this search</label>
+  <div class="alertrow">
+    <input id="alertEmail" type="email" required placeholder="you@example.com" autocomplete="email" maxlength="120">
+    <select id="alertFreq" aria-label="How often">
+      <option value="weekly" selected>Weekly</option>
+      <option value="daily">Daily</option>
+    </select>
+    <button class="btn" type="submit">Sign up</button>
+  </div>
+  <p class="alertnote" id="alertNote">We'll send a confirmation first. Only new tournaments, never a digest of the same events, and every email has a one-tap unsubscribe.</p>
+</form>
 <main class="board" id="board"></main>
 <div class="more" id="more" hidden><button type="button" id="moreBtn"></button></div>
 <p class="note">Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
@@ -432,6 +455,7 @@ let events = [], baselines = new Map();
 // silently giving everyone the phone layout.
 const PAGE = (window.innerWidth || 1024) <= 620 ? 25 : 40;
 let visible = PAGE;
+let currentFilters = {};   // what an email alert would watch, kept in step with the board
 
 // ---- Where to measure distance from. Default is Sanger, TX; the user can
 // set any city or US zip. Stored per device. Distances are computed here
@@ -598,6 +622,11 @@ function render() {
     days ? `next ${days === 30 ? "30 days" : days / 30 + " months"}` : "all dates",
     orgs.size === allOrgs ? "all orgs" : `${orgs.size} of ${allOrgs} orgs`,
   ].join(" · ");
+
+  currentFilters = {
+    label: loc.label, lat: loc.lat, lng: loc.lng,
+    miles: maxDist, ages, min: minTeams, orgs: [...orgs],
+  };
 
   const ics = new URLSearchParams({ ages: ages.join(","), miles: String(maxDist), min: String(minTeams), orgs: [...orgs].join(",") });
   if (loc && isFinite(loc.lat)) { ics.set("lat", loc.lat.toFixed(4)); ics.set("lng", loc.lng.toFixed(4)); }
@@ -780,6 +809,40 @@ $("#playerList").addEventListener("click", (e) => {
 });
 $("#players").open = players.length > 0 && wideScreen();
 renderPlayers();
+
+// ---- Email alerts. Double opt-in: the signup only creates a pending row and
+// the confirmation link arrives by email, so nobody can sign up someone else.
+$("#alertToggle").addEventListener("click", (e) => {
+  e.preventDefault();
+  const form = $("#alertForm");
+  form.hidden = !form.hidden;
+  if (!form.hidden) $("#alertEmail").focus();
+});
+$("#alertForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const note = $("#alertNote");
+  const email = $("#alertEmail").value.trim();
+  const btn = e.target.querySelector("button");
+  btn.disabled = true;
+  note.className = "alertnote";
+  note.textContent = "Signing you up…";
+  const { error } = await db.rpc("request_alerts", {
+    p_email: email,
+    p_filters: currentFilters,
+    p_frequency: $("#alertFreq").value,
+  });
+  btn.disabled = false;
+  if (error) {
+    note.className = "alertnote err";
+    note.textContent = /invalid email/i.test(error.message)
+      ? "That address doesn't look right."
+      : `Couldn't sign you up. ${error.message}`;
+    return;
+  }
+  note.className = "alertnote ok";
+  note.textContent = `Check ${email} for a confirmation link. Nothing is sent until you tap it.`;
+  $("#alertEmail").value = "";
+});
 
 // ---- Filters panel: open on desktop, collapsed on phones so the board is
 // immediately visible. The summary has to carry enough state to be useful
