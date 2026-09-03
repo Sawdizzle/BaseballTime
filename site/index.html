@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Palette lifted from the logo: navy outlines, feather blues, ice skull. */
+    /* Palette lifted from the logo: navy field, royal-blue rim, ice-white ball. */
     --paper: #eaf2f9;      /* pale ice background */
     --grid: #b7d0e4;       /* light feather blue lines */
     --ink: #0b1220;        /* near-black navy outlines */
@@ -50,7 +50,7 @@
     border-bottom: 4px solid var(--feather);
   }
   .masthead { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .masthead .logo { height: 52px; width: auto; flex: none; }
+  .masthead .logo { height: 52px; width: 52px; flex: none; border-radius: 10px; }
   .masthead h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .02em; }
   .masthead h1 span { color: var(--feather); }
   .masthead p { margin: 0; font-size: 14px; color: #b9d3ea; }
@@ -236,7 +236,7 @@
 <body>
 <header>
   <div class="masthead">
-    <img class="logo" src="logo.png" alt="" width="52" height="52">
+    <img class="logo" src="icon-192.png" alt="" width="52" height="52">
     <h1>Baseball Time <span>in TX</span></h1>
     <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
     <div class="updated" id="updated"></div>

@@ -21,8 +21,11 @@ project), and serving a filterable dashboard from `/site` on Vercel.
   scraper's `distance_miles` column is Sanger-based and only used for the
   run log's qualifying summary.
   Installable as a home-screen app: `manifest.webmanifest`, `sw.js` (shell
-  cache only; data is always live), and the icon PNGs rendered from
-  `icon.svg`. Re-export the PNGs from `icon.svg` if the icon changes.
+  cache only; data is always live), and the icon PNGs derived from
+  `icon.png` (the 2048px master; also the masthead logo at 192px). If the
+  artwork changes, re-export icon-512 / icon-192 / apple-touch-icon (180)
+  and icon-512-maskable (78% inset on flat navy for Android's crop), then
+  bump `CACHE` in `sw.js`.
 
 ## How counts work
 
