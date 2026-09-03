@@ -4,7 +4,7 @@ import { fetchHtml, parseSlashDates, splitCityState, normDivisions } from "./uti
 const GRID_URL = "https://playpacsports.com/cmsportevents/index/grid/";
 
 // PAC grid: ul.list-item rows with classed li columns. No public per-division
-// team list, so teams_14u stays null (dashboard shows total with a flag).
+// team list, so per-division counts stay empty (dashboard shows total with a flag).
 export async function scrapePAC({ log = console.error } = {}) {
   const html = await fetchHtml(GRID_URL);
   const $ = cheerio.load(html);
@@ -39,6 +39,7 @@ export async function scrapePAC({ log = console.error } = {}) {
       divisions,
       total_registered: registered,
       teams_14u: null,
+      division_counts: {},
       cost: null,
       event_url: href.startsWith("http") ? href : `https://playpacsports.com${href}`,
       event_status: col("stature").text().trim() || "Tournament",

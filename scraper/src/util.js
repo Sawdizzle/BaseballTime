@@ -95,3 +95,7 @@ export function splitCityState(raw) {
 export function normDivisions(list) {
   return [...new Set(list.map((d) => d.trim().toUpperCase()).filter(Boolean))];
 }
+
+// Age divisions we drill into for exact per-division team counts.
+export const TRACKED_DIVISIONS = ["10U", "11U", "12U", "14U"];
+export const hasTrackedDivision = (divisions) => divisions.some((d) => TRACKED_DIVISIONS.includes(d));

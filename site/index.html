@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1e2a3a">
-<title>TourneyScan — 14U Tournament Finder</title>
+<title>TourneyScan — Youth Tournament Finder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -53,7 +53,9 @@
   .control b { font-weight: 600; color: var(--ink); font-size: 14px; }
   .control output { font-variant-numeric: tabular-nums; }
   input[type=range] { width: 150px; accent-color: var(--pencil); }
-  input[type=number] { width: 58px; padding: 4px 6px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; }
+  input[type=number], select { padding: 4px 6px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); }
+  input[type=number] { width: 58px; }
+  select { width: 74px; font-weight: 600; }
   .orgs { display: flex; gap: 10px; }
   .orgs label { display: flex; gap: 5px; align-items: center; font-weight: 500; cursor: pointer; }
   .orgs input { accent-color: var(--ink); }
@@ -125,7 +127,7 @@
 <header>
   <div class="masthead">
     <h1>Tourney<span>Scan</span></h1>
-    <p>14U tournaments with open brackets near Sanger, TX — NCS, PAC &amp; PPS, checked twice daily</p>
+    <p>10U–14U tournaments with open brackets near Sanger, TX — NCS, PAC &amp; PPS, checked twice daily</p>
     <div class="updated" id="updated"></div>
   </div>
 </header>
@@ -140,7 +142,16 @@
     <input type="checkbox" id="bandOnly"> <b>50–80 mi band only</b>
   </label>
   <div class="control">
-    <b>Min 14U teams</b>
+    <b>Age</b>
+    <select id="ageDiv">
+      <option value="10U">10U</option>
+      <option value="11U">11U</option>
+      <option value="12U">12U</option>
+      <option value="14U" selected>14U</option>
+    </select>
+  </div>
+  <div class="control">
+    <b>Min <span id="ageLbl">14U</span> teams</b>
     <input type="number" id="minTeams" min="0" max="30" value="3">
   </div>
   <div class="control">
@@ -164,7 +175,15 @@ const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
 const $ = (s) => document.querySelector(s);
+const DIVISIONS = ["10U", "11U", "12U", "14U"];
 let events = [], deltas = new Map();
+
+// Remember the last-picked age across visits.
+try {
+  const saved = localStorage.getItem("ageDiv");
+  if (DIVISIONS.includes(saved)) $("#ageDiv").value = saved;
+} catch {}
+const currentDiv = () => $("#ageDiv").value;
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -176,8 +195,8 @@ const fmtDay = (iso) => {
 async function load() {
   const today = new Date().toISOString().slice(0, 10);
   const [ev, snaps] = await Promise.all([
-    db.from("events").select("*").eq("has_14u", true).gte("end_date", today).order("start_date"),
-    db.from("registration_snapshots").select("event_id, snapshot_date, teams_14u")
+    db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date"),
+    db.from("registration_snapshots").select("event_id, snapshot_date, teams_14u, division_counts")
       .gte("snapshot_date", new Date(Date.now() - 8 * 86400e3).toISOString().slice(0, 10))
       .order("snapshot_date"),
   ]);
@@ -193,30 +212,44 @@ async function load() {
   render();
 }
 
-function weekDelta(id, current) {
+// Exact team count for an event in the given division, or null if the org
+// doesn't publish one. Rows scraped before per-division counts existed only
+// carry teams_14u, so fall back to it for 14U.
+function exactCount(row, div) {
+  const c = row.division_counts?.[div];
+  if (c != null) return c;
+  if (div === "14U" && row.teams_14u != null) return row.teams_14u;
+  return null;
+}
+
+function weekDelta(id, current, div) {
   const arr = deltas.get(id);
   if (!arr || arr.length < 2) return 0;
-  return current - arr[0].teams_14u;
+  const first = exactCount(arr[0], div);
+  return first == null ? 0 : current - first;
 }
 
 function render() {
   const maxDist = +$("#maxDist").value;
   const band = $("#bandOnly").checked;
   const minTeams = +$("#minTeams").value;
+  const div = currentDiv();
+  $("#ageLbl").textContent = div;
+  try { localStorage.setItem("ageDiv", div); } catch {}
   const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
   $("#distOut").textContent = band ? "50–80 mi" : `up to ${maxDist} mi`;
 
   const inRange = (d) => d != null && (band ? d >= 50 && d <= 80 : d <= maxDist);
-  const countOf = (e) => (e.teams_14u != null ? e.teams_14u : e.total_registered);
+  const countOf = (e) => exactCount(e, div) ?? e.total_registered;
 
-  const shown = events.filter((e) => orgs.has(e.org) && inRange(+e.distance_miles));
+  const shown = events.filter((e) => (e.divisions || []).includes(div) && orgs.has(e.org) && inRange(+e.distance_miles));
   const qual = shown.filter((e) => countOf(e) >= minTeams);
   $("#tally").innerHTML = shown.length
-    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming 14U event${shown.length === 1 ? "" : "s"} in range`
+    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} upcoming ${div} event${shown.length === 1 ? "" : "s"} in range`
     : "";
 
   if (!shown.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No 14U events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
+    $("#board").innerHTML = `<div class="empty"><b>No ${div} events in range.</b><br>Widen the distance or wait for the next scrape — new tournaments post weekly.</div>`;
     return;
   }
 
@@ -226,8 +259,9 @@ function render() {
     const monthKey = `${d.month} ${d.year}`;
     if (monthKey !== lastMonth) { html += `<h2 class="month">${monthKey}</h2>`; lastMonth = monthKey; }
     const n = countOf(e);
-    const approx = e.teams_14u == null;
-    const delta = e.teams_14u != null ? weekDelta(e.id, e.teams_14u) : 0;
+    const exact = exactCount(e, div);
+    const approx = exact == null;
+    const delta = exact != null ? weekDelta(e.id, exact, div) : 0;
     const q = n >= minTeams;
     const endD = e.end_date && e.end_date !== e.start_date ? "–" + fmtDay(e.end_date).day : "";
     html += `<a class="game${q ? " qualifies" : ""}" href="${e.event_url}" target="_blank" rel="noopener">
@@ -238,8 +272,8 @@ function render() {
       </div>
       <div class="dist"><b>${e.distance_miles}</b> mi</div>
       <div class="count">
-        <div class="n">${n}${approx ? "" : ""}</div>
-        <div class="lbl">${approx ? '<span class="approx">≈ all ages</span>' : "14U teams"}</div>
+        <div class="n">${n}</div>
+        <div class="lbl">${approx ? '<span class="approx">≈ all ages</span>' : `${div} teams`}</div>
         ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
       </div>
     </a>`;
@@ -249,7 +283,7 @@ function render() {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-for (const el of ["#maxDist", "#bandOnly", "#minTeams"].map($)) el.addEventListener("input", render);
+for (const el of ["#maxDist", "#bandOnly", "#minTeams", "#ageDiv"].map($)) el.addEventListener("input", render);
 for (const el of document.querySelectorAll("[data-org]")) el.addEventListener("input", render);
 load();
 </script>

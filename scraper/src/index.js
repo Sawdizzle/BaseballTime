@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { scrapeNCS } from "./ncs.js";
 import { scrapePAC } from "./pac.js";
 import { scrapePPS } from "./pps.js";
-import { geocodeCity, haversineMiles, SANGER, sleep } from "./util.js";
+import { geocodeCity, haversineMiles, SANGER, sleep, TRACKED_DIVISIONS } from "./util.js";
 
 const DRY = process.env.DRY_RUN === "1";
 const log = console.error;
@@ -52,10 +52,15 @@ async function main() {
   }
 
   const rows = events.map(({ slug, ...e }) => e);
-  const qualifying = rows.filter(
-    (e) => e.divisions.includes("14U") && (e.teams_14u ?? e.total_registered) >= 3 && e.distance_miles != null && e.distance_miles <= 80
-  );
-  log(`Total: ${rows.length} events | qualifying (14U, 3+, ≤80mi): ${qualifying.length}`);
+  const countFor = (e, div) => e.division_counts[div] ?? e.total_registered;
+  const qualifying = {};
+  for (const div of TRACKED_DIVISIONS) {
+    qualifying[div] = rows.filter(
+      (e) => e.divisions.includes(div) && countFor(e, div) >= 3 && e.distance_miles != null && e.distance_miles <= 80
+    );
+  }
+  const summary = TRACKED_DIVISIONS.map((d) => `${d}: ${qualifying[d].length}`).join(", ");
+  log(`Total: ${rows.length} events | qualifying (3+, ≤80mi) — ${summary}`);
 
   if (DRY) {
     console.log(JSON.stringify({ events: rows, qualifying }, null, 2));
@@ -77,6 +82,7 @@ async function main() {
       event_id: idMap.get(`${e.org}|${e.source_event_id}`),
       total_registered: e.total_registered,
       teams_14u: e.teams_14u ?? 0,
+      division_counts: e.division_counts,
     }))
     .filter((s) => s.event_id);
   const { error: snapErr } = await supabase

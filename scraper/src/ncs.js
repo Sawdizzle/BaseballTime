@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { fetchHtml, parseNcsDates, splitCityState, normDivisions, sleep } from "./util.js";
+import { fetchHtml, parseNcsDates, splitCityState, normDivisions, sleep, hasTrackedDivision } from "./util.js";
 
 const BASE = "https://www.playncs.com";
 const LIST_URL = `${BASE}/baseball/Regions/texas/Events`;
@@ -43,6 +43,7 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
       divisions,
       total_registered: registered,
       teams_14u: null,
+      division_counts: {},
       cost: null,
       event_url: `${BASE}${href}`,
       event_status: $el.find(".stature").first().text().trim() || "Tournament",
@@ -50,15 +51,16 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
   });
 
   if (drillDown) {
-    const targets = events.filter((e) => e.divisions.includes("14U") && e.total_registered > 0);
-    log(`NCS: ${events.length} events, drilling into ${targets.length} with 14U`);
+    const targets = events.filter((e) => hasTrackedDivision(e.divisions) && e.total_registered > 0);
+    log(`NCS: ${events.length} events, drilling into ${targets.length} with tracked divisions`);
     const queue = [...targets];
     await Promise.all(
       Array.from({ length: 3 }, async () => {
         while (queue.length) {
           const ev = queue.shift();
           try {
-            ev.teams_14u = await ncs14uCount(ev.source_event_id, ev.slug);
+            ev.division_counts = await ncsDivisionCounts(ev.source_event_id, ev.slug);
+            if (ev.divisions.includes("14U")) ev.teams_14u = ev.division_counts["14U"] ?? 0;
           } catch (err) {
             log(`NCS drill-down failed for ${ev.source_event_id}: ${err.message}`);
           }
@@ -70,13 +72,18 @@ export async function scrapeNCS({ drillDown = true, log = console.error } = {}) 
   return events;
 }
 
-async function ncs14uCount(id, slug) {
+// Per-division team counts from the Who's Coming page, keyed "10U", "12U", ...
+// Sub-brackets ("14U Open", "14U AAA") roll up into their age key.
+async function ncsDivisionCounts(id, slug) {
   const html = await fetchHtml(`${BASE}/baseball/Events/WhosComing/${id}/${slug}`);
   const $ = cheerio.load(html);
-  let count = 0;
+  const counts = {};
   $(".panel").each((_, panel) => {
     const division = $(panel).find(".division").first().text().trim();
-    if (!/^14U\b/i.test(division)) return;
+    const m = division.match(/^(\d{1,2})U\b/i);
+    if (!m) return;
+    const key = `${m[1]}U`;
+    let count = 0;
     $(panel)
       .find("table tbody tr")
       .each((_, tr) => {
@@ -84,6 +91,7 @@ async function ncs14uCount(id, slug) {
         const isOpen = cell.find("em").length && /open/i.test(cell.text());
         if (cell.text().trim() && !isOpen) count += 1;
       });
+    counts[key] = (counts[key] || 0) + count;
   });
-  return count;
+  return counts;
 }

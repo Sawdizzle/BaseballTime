@@ -1,6 +1,6 @@
 # BaseballTime / TourneyScan
 
-Finds 14U tournaments with open brackets near Sanger, TX by scraping NCS
+Finds 10U, 11U, 12U, and 14U tournaments with open brackets near Sanger, TX by scraping NCS
 (playncs.com), PAC (playpacsports.com), and PPS (baseball.playpps.com) twice
 daily, storing results in Supabase (`tourneyscan` schema in the PickEm
 project), and serving a filterable dashboard from `/site` on Vercel.
@@ -16,9 +16,12 @@ project), and serving a filterable dashboard from `/site` on Vercel.
 
 ## How counts work
 
-NCS and PPS events get an exact 14U team count from each event's public team
-listing (Who's Coming / division count pills). PAC doesn't publish team lists,
-so PAC rows carry the total across all ages and show ≈ on the dashboard.
+NCS and PPS events get exact per-division team counts (10U/11U/12U/14U, stored
+in `events.division_counts`) from each event's public team listing (Who's
+Coming / division count pills). `teams_14u` is kept in sync for 14U. PAC
+doesn't publish team lists, so PAC rows carry the total across all ages and
+show ≈ on the dashboard. Tracked divisions live in `scraper/src/util.js`
+(`TRACKED_DIVISIONS`); the dashboard's Age picker mirrors that list.
 
 ## When it breaks
 

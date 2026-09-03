@@ -1,12 +1,12 @@
 import * as cheerio from "cheerio";
-import { fetchHtml, parseSlashDates, normDivisions, sleep } from "./util.js";
+import { fetchHtml, parseSlashDates, normDivisions, sleep, hasTrackedDivision } from "./util.js";
 
 const BASE = "https://baseball.playpps.com";
 
 // PPS (Playbook365): cards are .list-container[data-event-id] with schema.org
 // microdata (name, startDate, endDate, addressLocality/Region) plus a hidden
 // <select class="division"> listing age divisions. Each event's public /teams
-// page shows an exact per-division count pill — that's our 14U number.
+// page shows an exact per-division count pill — that's our per-age number.
 export async function scrapePPS({ drillDown = true, log = console.error } = {}) {
   const landing = await fetchHtml(BASE);
   const $l = cheerio.load(landing);
@@ -30,11 +30,12 @@ export async function scrapePPS({ drillDown = true, log = console.error } = {}) 
   const events = [...byId.values()];
 
   if (drillDown) {
-    const targets = events.filter((e) => e.divisions.includes("14U") && e.slug);
-    log(`PPS: ${events.length} events, drilling into ${targets.length} with 14U`);
+    const targets = events.filter((e) => hasTrackedDivision(e.divisions) && e.slug);
+    log(`PPS: ${events.length} events, drilling into ${targets.length} with tracked divisions`);
     for (const ev of targets) {
       try {
-        ev.teams_14u = await pps14uCount(ev.slug);
+        ev.division_counts = await ppsDivisionCounts(ev.slug);
+        if (ev.divisions.includes("14U")) ev.teams_14u = ev.division_counts["14U"] ?? 0;
       } catch (err) {
         log(`PPS drill-down failed for ${ev.slug}: ${err.message}`);
       }
@@ -90,6 +91,7 @@ function parseCards(html, byId) {
       divisions,
       total_registered: regMatch ? parseInt(regMatch[1], 10) : 0,
       teams_14u: null,
+      division_counts: {},
       cost: costMatch ? `$${costMatch[1]}` : null,
       event_url: slug ? `${BASE}/events/${slug}` : BASE,
       event_status: "Tournament",
@@ -97,15 +99,18 @@ function parseCards(html, byId) {
   });
 }
 
-async function pps14uCount(slug) {
+// Per-division counts from the /teams page pills, keyed "10U", "12U", ...
+async function ppsDivisionCounts(slug) {
   const html = await fetchHtml(`${BASE}/events/${slug}/teams`);
   const $ = cheerio.load(html);
-  let count = 0;
+  const counts = {};
   $(".panel-heading").each((_, el) => {
     const heading = $(el).clone().children().remove().end().text().trim();
-    if (!/^14U$/i.test(heading)) return;
+    const m = heading.match(/^(\d{1,2})U$/i);
+    if (!m) return;
+    const key = `${m[1]}U`;
     const pill = $(el).find(".division-count-pill").first().text().trim();
-    count += parseInt(pill, 10) || 0;
+    counts[key] = (counts[key] || 0) + (parseInt(pill, 10) || 0);
   });
-  return count;
+  return counts;
 }
