@@ -1,0 +1,24 @@
+name: probe (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Resend what happened to recent sends
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          code=$(curl -s -o /tmp/e.json -w "%{http_code}" -H "Authorization: Bearer $RESEND_API_KEY" "https://api.resend.com/emails?limit=10")
+          echo "PROBE list_http=$code"
+          head -c 600 /tmp/e.json; echo
+          python3 - <<'PY'
+          import json
+          try: d=json.load(open("/tmp/e.json"))
+          except Exception as e: print("PROBE unparsable"); raise SystemExit
+          items = d.get("data") if isinstance(d, dict) else None
+          if not isinstance(items, list):
+              print("PROBE no_list_support"); raise SystemExit
+          print("PROBE count:", len(items))
+          for it in items:
+              print("PROBE mail:", it.get("id","")[:8], "| to:", it.get("to"), "| status:", it.get("last_event") or it.get("status"), "| subject:", (it.get("subject") or "")[:40])
+          PY
