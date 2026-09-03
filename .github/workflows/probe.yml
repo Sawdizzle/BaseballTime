@@ -4,20 +4,22 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Resend domain verification
+      - name: Poll Resend verification
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
-          id=$(curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains \
-               | python3 -c "import sys,json;d=json.load(sys.stdin);print((d.get('data') or [{}])[0].get('id',''))")
-          echo "PROBE domain_id=${id:0:8}..."
-          echo "PROBE verify_response=$(curl -s -X POST -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains/$id/verify)"
-          sleep 20
-          curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains/$id > /tmp/one.json
+          id=b2583745-5188-46c7-8e75-b7a7904eca71
+          for i in $(seq 1 12); do
+            curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains/$id > /tmp/one.json
+            st=$(python3 -c "import json;print(json.load(open('/tmp/one.json')).get('status'))")
+            echo "PROBE attempt=$i status=$st"
+            if [ "$st" != "pending" ]; then break; fi
+            sleep 25
+          done
           python3 - <<'PY'
           import json
           d = json.load(open("/tmp/one.json"))
-          print("PROBE status:", d.get("status"))
+          print("PROBE final:", d.get("status"))
           for r in d.get("records", []) or []:
               print("PROBE record:", r.get("record"), r.get("name"), "->", r.get("status"))
           PY
