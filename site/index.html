@@ -171,6 +171,8 @@
     box-shadow: 0 8px 24px rgba(11, 18, 32, .35);
     font-size: 14px; line-height: 1.35;
   }
+  /* .install sets display:flex, which would beat the UA's [hidden] rule. */
+  .install[hidden] { display: none !important; }
   .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
   .install b { display: block; font-size: 15px; }
   .install .steps { color: #b9d3ea; }
@@ -397,15 +399,20 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 // ---- Install-to-home-screen prompt.
 // Android/desktop Chrome fire beforeinstallprompt, so we can offer a real
 // Install button. iOS never does, so we show the Share → Add to Home Screen
-// steps instead. Hidden once installed (standalone) or dismissed.
+// steps instead. Shows once per device: never inside the installed app
+// (standalone), and never again after it has been shown or dismissed.
 (function installPrompt() {
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  let dismissed = false;
-  try { dismissed = localStorage.getItem("installDismissed") === "1"; } catch {}
-  if (standalone || dismissed) return;
+  let seen = false;
+  try { seen = localStorage.getItem("installSeen") === "1"; } catch {}
+  if (standalone || seen) return;
   const box = $("#install"), btn = $("#installBtn"), steps = $("#installSteps");
-  const hide = () => { box.hidden = true; try { localStorage.setItem("installDismissed", "1"); } catch {} };
+  const markSeen = () => { try { localStorage.setItem("installSeen", "1"); } catch {} };
+  const show = () => { box.hidden = false; markSeen(); };
+  const hide = () => { box.hidden = true; markSeen(); };
   $("#installClose").addEventListener("click", hide);
+  // If the page becomes an installed app mid-session, drop the banner.
+  matchMedia("(display-mode: standalone)").addEventListener?.("change", (e) => { if (e.matches) hide(); });
 
   const ua = navigator.userAgent;
   const iOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -414,7 +421,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
     steps.innerHTML = isSafari
       ? `Tap <kbd>Share</kbd> ⎙ then <kbd>Add to Home Screen</kbd>.`
       : `Open this page in <kbd>Safari</kbd>, tap <kbd>Share</kbd> ⎙, then <kbd>Add to Home Screen</kbd>.`;
-    setTimeout(() => { box.hidden = false; }, 2500);
+    setTimeout(show, 2500);
     return;
   }
   let deferred = null;
@@ -423,7 +430,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
     deferred = e;
     steps.textContent = "Works like an app, opens full screen.";
     btn.hidden = false;
-    box.hidden = false;
+    show();
   });
   btn.addEventListener("click", async () => {
     if (!deferred) return;
