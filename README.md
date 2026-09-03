@@ -3,8 +3,9 @@
 Finds 10U through 14U tournaments with open brackets anywhere in Texas and
 Oklahoma (the dashboard measures distance from any city or zip you enter,
 defaulting to Sanger, TX) by scraping NCS
-(playncs.com), PAC (playpacsports.com), PPS (baseball.playpps.com), and USSSA
-(usssa.com JSON API, statewide TX + OK) twice
+(playncs.com), PAC (playpacsports.com), PPS (baseball.playpps.com), USSSA
+(usssa.com JSON API, statewide TX + OK), and Perfect Game (the national
+RadGrid schedule, filtered to the states we want) twice
 daily, storing results in Supabase (`tourneyscan` schema in the PickEm
 project), and serving a filterable dashboard from `/site` on Vercel.
 
@@ -29,7 +30,7 @@ project), and serving a filterable dashboard from `/site` on Vercel.
 
 ## How counts work
 
-NCS, PPS, and USSSA events get exact per-division team counts (10U–14U, stored
+NCS, PPS, USSSA, and Perfect Game events get exact per-division team counts (10U–14U, stored
 in `events.division_counts`) from each event's public team listing (Who's
 Coming / division count pills). `teams_14u` is kept in sync for 14U. PAC
 doesn't publish team lists, so PAC rows carry the total across all ages and
@@ -40,4 +41,4 @@ show ≈ on the dashboard. Tracked divisions live in `scraper/src/util.js`
 
 If a site redesigns, that org's parser fails loudly and the Actions run goes
 red (email from GitHub). The other orgs keep working — failures are isolated
-per source. Fix lives in `scraper/src/{ncs,pac,pps,usssa}.js`.
+per source. Fix lives in `scraper/src/{ncs,pac,pps,usssa,pg}.js`.

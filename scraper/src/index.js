@@ -3,6 +3,7 @@ import { scrapeNCS } from "./ncs.js";
 import { scrapePAC } from "./pac.js";
 import { scrapePPS } from "./pps.js";
 import { scrapeUSSSA } from "./usssa.js";
+import { scrapePG } from "./pg.js";
 import { geocodeCity, haversineMiles, SANGER, sleep, TRACKED_DIVISIONS } from "./util.js";
 
 const DRY = process.env.DRY_RUN === "1";
@@ -21,10 +22,11 @@ async function main() {
     scrapePAC({ log }),
     scrapePPS({ log }),
     scrapeUSSSA({ log }),
+    scrapePG({ log }),
   ]);
   const events = [];
   for (const [i, r] of results.entries()) {
-    const org = ["NCS", "PAC", "PPS", "USSSA"][i];
+    const org = ["NCS", "PAC", "PPS", "USSSA", "PG"][i];
     if (r.status === "fulfilled") events.push(...r.value);
     else log(`${org} scrape FAILED: ${r.reason?.message || r.reason}`);
   }

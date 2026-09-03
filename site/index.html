@@ -181,6 +181,7 @@
   .empty b { color: var(--ink); }
   .note { max-width: 980px; margin: 0 auto 16px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
   .support { max-width: 980px; margin: 0 auto 48px; padding: 0 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 13px; color: var(--ink-soft); }
+  .support a[href^="mailto:"] { color: var(--pencil); font-weight: 600; line-height: inherit; display: inline; }
   .support a { display: inline-block; line-height: 0; }
   .support img { height: 40px; width: auto; border-radius: 6px; }
 
@@ -249,7 +250,7 @@
   <div class="masthead">
     <img class="logo" src="icon-192.png" alt="" width="52" height="52">
     <h1>Baseball Time <span>in TX</span></h1>
-    <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — NCS, PAC, PPS &amp; USSSA, checked twice daily</p>
+    <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — NCS, PAC, PPS, USSSA &amp; Perfect Game, checked twice daily</p>
     <div class="updated" id="updated"></div>
     <button class="share" id="shareBtn" type="button" aria-label="Share this site">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -300,6 +301,7 @@
       <label><input type="checkbox" data-org="PAC" checked>PAC</label>
       <label><input type="checkbox" data-org="PPS" checked>PPS</label>
       <label><input type="checkbox" data-org="USSSA" checked>USSSA</label>
+      <label><input type="checkbox" data-org="PG" checked>PG</label>
     </div>
   </div>
 </div>
@@ -321,7 +323,8 @@
 <p class="note">Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
 
 <div class="support">
-  <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.</span>
+  <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.
+  Questions, corrections, or a tournament we're missing? <a href="mailto:info@youthbaseballtime.com">info@youthbaseballtime.com</a>.</span>
   <a href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=sawtech&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" loading="lazy"></a>
 </div>
 
