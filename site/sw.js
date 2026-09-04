@@ -1,6 +1,6 @@
 // Minimal service worker: makes the site installable on Android/Chrome and
 // keeps the shell available offline. Data always comes live from Supabase.
-const CACHE = "bbtime-shell-v2";
+const CACHE = "bbtime-shell-v3";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (e) => {

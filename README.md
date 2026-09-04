@@ -29,6 +29,47 @@ project), and serving a filterable dashboard from `/site` on Vercel.
   and icon-512-maskable (78% inset on flat navy for Android's crop), then
   bump `CACHE` in `sw.js`.
 
+## The dashboard
+
+`site/index.html` is the whole front end — one file, no build step, same as
+before. It runs four client-side views off a single Supabase load:
+
+- **Board** — a "best bet" hero (the soonest *weekend-length* event that clears
+  your team floor, nearest first among ties), then date-grouped rows, then a
+  detail rail. The rail is a permanent column above 1100px and a tap-to-open
+  bottom sheet below it.
+- **Map** — the same filtered set as pins, plus a nearest-first list. Leaflet is
+  loaded from a CDN only when the view is first opened, so the board never pays
+  for it.
+- **Saved** — none → watching → registered, kept per device. Registered rows get
+  a countdown, directions and season totals.
+- **Players** — unchanged logic, restyled.
+
+Filters live in a modal sheet whose primary button previews the result count
+before you apply it. Everything (filters, players, saved) stays in
+`localStorage` and is never sent anywhere.
+
+### Design decisions worth knowing
+
+- **Map tiles** are plain OpenStreetMap, inverted and desaturated in CSS to sit
+  on the dark palette. Every hosted dark style (CARTO, Mapbox, Stadia,
+  MapTiler) now needs an API key. If traffic outgrows OSM's tile policy, swap
+  `TILES` for a keyed provider and drop the `.leaflet-tile-pane` filter.
+- **Sparklines** need six weekly snapshots per event. `registration_snapshots`
+  only started filling on 2026-09-02, so they render nothing until an event has
+  six weeks of history — by design, rather than drawing a fake trend. They are
+  fetched per event (hero and watched events only), so they never hit the
+  1000-row API cap.
+- **Distances are straight-line**, not driving miles. The design called for
+  "18 mi · 27 min"; drive time needs a routing provider we don't have, so the
+  minutes are omitted instead of estimated.
+- **Entry fees** are published by only about a sixth of events, so the fee is
+  dropped from a row when missing and the season total says how many of the
+  registered events actually published one.
+- **The calendar subscription** covers events matching your current search, not
+  your registered list — registered state is device-local, and a webcal URL is
+  fixed at subscribe time, so it could never track it.
+
 ## How counts work
 
 NCS, PPS, USSSA, and Perfect Game events get exact per-division team counts (10U–14U, stored

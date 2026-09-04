@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#080d15">
 <meta name="description" content="10U–14U baseball tournaments with open brackets near Sanger, TX.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,488 +15,773 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow+Semi+Condensed:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
+  /* ------------------------------------------------------------------
+     "Scoreboard" palette. Dark, condensed numerals: the board is meant to
+     read like an outfield scoreboard, so the numbers carry the page and
+     everything else steps back.
+     ------------------------------------------------------------------ */
   :root {
-    /* Palette lifted from the logo: navy field, royal-blue rim, ice-white ball. */
-    --paper: #eaf2f9;      /* pale ice background */
-    --grid: #b7d0e4;       /* light feather blue lines */
-    --ink: #0b1220;        /* near-black navy outlines */
-    --ink-soft: #4a5f76;   /* shaded navy for secondary text */
-    --pencil: #1f6fb8;     /* deep feather blue: qualifying highlight */
-    --dirt: #2f7fc4;       /* mid feather blue: org labels */
-    --feather: #8ec8ef;    /* light feather blue: header accents */
-    --row: #f6fafd;
+    --bg: #080d15;
+    --bg-header: #0d1420;
+    --bg-filterbar: #0a1119;
+    --bg-rail: #0b1119;
+    --bg-card: #0e1626;
+    --bg-input: #0f1826;
+    --bg-chip: #131d2c;
+    --bg-tag: #16283f;
+    --hero-grad: linear-gradient(180deg, #12203a, #0e1626);
+
+    --border-strong: #24344c;
+    --border: #1e2b40;
+    --border-soft: #17212f;
+    --border-row: #16202f;
+    --border-hero: #263854;
+    --border-map: #22304a;
+
+    --accent: #8ec8ef;
+    --accent-ink: #08111c;
+    --accent-mid: #3a6ba3;
+    --accent-bright: #5f9fd4;
+
+    --success: #5fd08a;
+    --success-fill: #1a7a4d;
+    --success-border: #1c4a33;
+
+    --text: #e8eef6;
+    --text-2: #9fb5cd;
+    --text-3: #7c93ae;
+    --text-4: #5b7290;
+
+    --track: #1b2839;
+    --track-2: #16202f;
+    --org-link: #2f7fc4;
+
+    --cond: "Barlow Condensed", "Barlow Semi Condensed", system-ui, sans-serif;
+    --ui: "Barlow Semi Condensed", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
   }
   * { box-sizing: border-box; }
-  html { background: var(--ink); }
+  html { background: var(--bg); }
   body {
     margin: 0;
     min-height: 100svh;
     overscroll-behavior-y: none;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Barlow Semi Condensed", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ui);
     font-size: 16px;
     line-height: 1.45;
-    padding-bottom: env(safe-area-inset-bottom);
   }
-  header {
-    background: var(--ink);
-    color: var(--paper);
-    padding: calc(14px + env(safe-area-inset-top)) 20px 16px;
-    border-bottom: 4px solid var(--feather);
+  b, strong { font-weight: 700; }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--text-4);
   }
-  .masthead { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .masthead .logo { height: 52px; width: 52px; flex: none; border-radius: 10px; }
-  .masthead h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .02em; }
-  .masthead h1 span { color: var(--feather); }
-  .masthead p { margin: 0; font-size: 14px; color: #b9d3ea; }
-  .masthead .updated { margin-left: auto; font-size: 13px; color: #8fb0cc; font-variant-numeric: tabular-nums; }
-  .coffee {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: #FFDD00; color: #000; text-decoration: none;
-    font-size: 13px; font-weight: 700; line-height: 1;
-    padding: 6px 10px; border-radius: 999px; white-space: nowrap;
+  .num { font-family: var(--cond); font-variant-numeric: tabular-nums; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------------- Masthead ---------------- */
+  header.masthead {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg-header);
+    border-bottom: 1px solid var(--border);
+    padding: calc(18px + env(safe-area-inset-top)) max(26px, env(safe-area-inset-right)) 18px max(26px, env(safe-area-inset-left));
   }
-  .coffee:hover { background: #ffe94d; }
-  .share {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: transparent; color: var(--feather);
-    border: 1.5px solid color-mix(in srgb, var(--feather) 55%, transparent);
+  .masthead .logo { width: 34px; height: 34px; border-radius: 8px; flex: none; }
+  .masthead h1 {
+    margin: 0; font-family: var(--cond); font-size: 23px; font-weight: 800;
+    letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  }
+  .masthead h1 span { color: var(--accent); }
+  .fresh {
+    margin-left: auto; display: flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600; color: var(--text-3); white-space: nowrap;
+  }
+  .fresh::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
+  .fresh.stale { color: #e0b070; }
+  .fresh.stale::before { background: #e0b070; }
+  .pill {
     font: inherit; font-size: 13px; font-weight: 700; line-height: 1;
-    padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    padding: 7px 14px; border-radius: 999px; border: 0; cursor: pointer;
+    background: var(--accent); color: #0b1220; white-space: nowrap;
+    transition: filter .15s ease;
   }
-  .share:hover { background: color-mix(in srgb, var(--feather) 16%, transparent); }
-  .share svg { display: block; }
-  .share.done { color: #fff; border-color: var(--feather); background: color-mix(in srgb, var(--feather) 28%, transparent); }
-
-  /* Filters live in a panel that collapses on phones, so the board is the
-     first thing you see rather than a screen and a half of controls. */
-  .filters { max-width: 980px; margin: 14px auto 4px; padding: 0 20px; }
-  .filters > summary {
-    list-style: none; cursor: pointer;
-    display: flex; align-items: center; gap: 10px;
-    background: var(--row); border: 1.5px solid var(--grid); border-radius: 6px;
-    padding: 11px 14px; font-size: 14.5px; font-weight: 700; color: var(--ink);
+  .pill:hover { filter: brightness(.94); }
+  .pill.ghost {
+    background: transparent; color: var(--text-2);
+    border: 1px solid var(--border-strong); padding: 6px 13px;
   }
-  .filters > summary::-webkit-details-marker { display: none; }
-  .filters > summary::before { content: "\2699"; color: var(--pencil); font-size: 15px; }
-  .filters .sumtext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .filters .sumhint { margin-left: auto; color: var(--pencil); font-size: 13px; flex: none; }
-  .filters[open] > summary { margin-bottom: 12px; }
-  .filters[open] > summary::before { content: "\2715"; }
+  .pill.ghost:hover { border-color: var(--accent); color: var(--accent); filter: none; }
 
-  .legend {
-    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end;
-    margin: 0; padding: 0;
+  /* ---------------- Filter summary strip ---------------- */
+  .filterbar {
+    background: var(--bg-filterbar);
+    border-bottom: 1px solid var(--border);
+    padding: 14px max(26px, env(safe-area-inset-right)) 14px max(26px, env(safe-area-inset-left));
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
+  .filterbar .eyebrow { flex: none; }
+  .summary {
+    font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: .02em;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  nav.views { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+  nav.views button {
+    font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: none; border: 0; padding: 0 0 3px; cursor: pointer;
+    color: var(--text-4); border-bottom: 2px solid transparent;
+  }
+  nav.views button[aria-current="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  nav.views button i { font-style: normal; color: var(--accent); margin-left: 4px; }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* ---------------- Shared layout ---------------- */
+  main { display: block; }
+  .pane { display: grid; grid-template-columns: 1fr 372px; align-items: start; }
+  /* Players stands alone -- no detail rail belongs next to it. */
+  .pane.solo { grid-template-columns: 1fr; }
+  .pane.solo .col-main { max-width: 900px; }
+  .col-main { padding: 22px 26px 40px; min-width: 0; }
+  .rail {
+    border-left: 1px solid var(--border); background: var(--bg-rail);
+    padding: 22px 22px 34px; align-self: stretch; min-width: 0;
+  }
+  [hidden] { display: none !important; }
+
+  /* ---------------- Hero: best bet ---------------- */
+  .hero {
+    background: var(--hero-grad); border: 1px solid var(--border-hero); border-radius: 12px;
+    padding: 22px 24px; display: grid; grid-template-columns: 96px 1fr auto; gap: 24px;
+    align-items: center; text-align: left; width: 100%; font: inherit; color: inherit;
+    cursor: pointer; text-decoration: none;
+  }
+  .hero:hover { border-color: var(--accent); }
+  .hero .date { text-align: center; line-height: .92; font-family: var(--cond); }
+  .hero .date .mo { font-size: 15px; font-weight: 700; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; }
+  .hero .date .dd { font-size: 56px; font-weight: 800; letter-spacing: -.02em; display: block; margin: 2px 0; }
+  .hero .date .dow { font-size: 15px; font-weight: 600; letter-spacing: .06em; color: var(--text-3); text-transform: uppercase; }
+  .hero .title { font-family: var(--cond); font-size: 32px; font-weight: 700; letter-spacing: .01em; line-height: 1.1; }
+  .hero .meta { font-size: 16px; color: var(--text-2); margin-top: 2px; }
+  .hero .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .hero .right { min-width: 150px; text-align: right; }
+  .hero .right .n { font-family: var(--cond); font-size: 52px; font-weight: 800; line-height: 1; }
+  .hero .right .lbl { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+
+  .tag {
+    font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 4px;
+    background: var(--bg-tag); color: var(--text-2); white-space: nowrap;
+  }
+  .tag.turf { background: var(--success-fill); color: #fff; }
+  .tag.wx { color: var(--accent); }
+  .tag.wx.wet { color: #cfe4f4; }
+  .tag.wx.storm { background: #4a1f22; color: #ffb4b4; }
+
+  /* 6 weekly snapshots, ramped light toward the present. Rendered only when
+     the scraper actually has that many weeks for the event. */
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin: 8px 0 4px; justify-content: flex-end; }
+  .spark i { width: 9px; border-radius: 1px; display: block; }
+  .delta { font-size: 14px; font-weight: 700; color: var(--success); }
+
+  /* ---------------- Month divider + board rows ---------------- */
+  .month {
+    margin: 30px 0 6px; display: flex; align-items: center; gap: 14px;
+    font-family: var(--cond); font-size: 19px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  }
+  .month .rule { flex: 1; height: 1px; background: var(--border); }
+  .month .tally { font-family: var(--ui); font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--text-4); text-transform: none; }
+
+  .row {
+    display: grid; grid-template-columns: 64px 1fr 132px 96px; gap: 18px; align-items: center;
+    padding: 15px 4px; border-bottom: 1px solid var(--border-row);
+    width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0;
+    font: inherit; color: inherit; cursor: pointer;
+  }
+  .row:hover { background: rgba(142, 200, 239, .04); }
+  .row.below { opacity: .55; }
+  .row.sel { background: rgba(142, 200, 239, .07); }
+  .row .when { text-align: center; font-family: var(--cond); line-height: 1.05; }
+  .row .when .dd { font-size: 26px; font-weight: 800; }
+  .row .when .dow { font-family: var(--ui); font-size: 12.5px; font-weight: 600; letter-spacing: .06em; color: var(--text-3); text-transform: uppercase; }
+  .row .name { font-family: var(--cond); font-size: 21px; font-weight: 600; line-height: 1.15; }
+  .row .name .flag { font-family: var(--ui); font-size: 13px; font-weight: 700; letter-spacing: .06em; margin-left: 6px; }
+  .row .name .flag.reg { color: var(--success); }
+  .row .name .flag.watch { color: var(--accent); }
+  .row .rowmeta { font-size: 14.5px; color: var(--text-3); }
+  .row .ages { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .row .count { text-align: left; }
+  .row .count .n { font-family: var(--cond); font-size: 24px; font-weight: 800; }
+  .row .count .n.approx { color: var(--text-3); }
+  .row .count .u { font-size: 13px; font-weight: 600; color: var(--text-3); margin-left: 4px; }
+  .row .count .caveat { font-size: 12.5px; color: var(--text-4); line-height: 1.25; }
+  .row .dist { text-align: right; font-size: 15px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  .bar { height: 4px; border-radius: 999px; background: var(--track); overflow: hidden; margin: 5px 0 3px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+  .bar.mid > i { background: var(--accent-mid); }
+
+  .agechip {
+    font-size: 12px; font-weight: 600; color: var(--text-3);
+    background: var(--bg-tag); border-radius: 4px; padding: 1px 7px;
+    font-variant-numeric: tabular-nums;
+  }
+  .agechip b { color: var(--text); font-weight: 800; margin-left: 4px; }
+  .agechip.on { background: var(--accent); color: var(--accent-ink); }
+  .agechip.on b { color: var(--accent-ink); }
+
+  /* ---------------- Detail rail ---------------- */
+  .rail h2 { margin: 6px 0 2px; font-family: var(--cond); font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .rail .sub { font-size: 15px; color: var(--text-2); }
+  .rail .map {
+    height: 150px; border-radius: 10px; border: 1px solid var(--border-map); margin: 14px 0 4px;
+    background: #0c1626; overflow: hidden;
+  }
+  .rail .map .leaflet-container { height: 100%; background: #0c1626; }
+  .spec { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 15px; }
+  .spec .k { color: var(--text-3); }
+  .spec .v { font-weight: 700; text-align: right; }
+  .spec .v.turf { color: var(--success); }
+  .brackets { margin-top: 6px; }
+  .brk { display: grid; grid-template-columns: 44px 1fr 34px; gap: 10px; align-items: center; padding: 5px 0; font-size: 14px; }
+  .brk .lbl { color: var(--text-3); font-weight: 600; }
+  .brk .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .brk.mine .lbl, .brk.mine .n { color: var(--accent); }
+  .brk .bar { height: 8px; margin: 0; }
+
+  .btn {
+    display: block; width: 100%; text-align: center; text-decoration: none;
+    font-family: var(--cond); font-size: 16px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    background: var(--accent); color: var(--accent-ink);
+    border: 0; border-radius: 8px; padding: 13px; cursor: pointer;
+    transition: filter .15s ease;
+  }
+  .btn:hover { filter: brightness(.94); }
+  .btn.out {
+    background: transparent; color: var(--text-2); border: 1.5px solid var(--border-strong);
+    font-family: var(--ui); font-size: 13.5px; font-weight: 700; letter-spacing: 0; text-transform: none;
+    padding: 10px; transition: border-color .15s ease, color .15s ease;
+  }
+  .btn.out:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+  .btn.out.on { border-color: var(--success); color: var(--success); }
+  .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+  /* ---------------- Map view ---------------- */
+  #mapCanvas { height: 520px; border-radius: 12px; border: 1px solid var(--border-map); background: #0c1626; position: relative; z-index: 0; }
+  /* Inverting only the tile pane leaves markers, labels and attribution in
+     their real colours. */
+  .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.82) contrast(1.04); }
+  .leaflet-container { background: #0c1626 !important; font-family: var(--ui) !important; }
+  .leaflet-control-attribution { background: rgba(8, 13, 21, .78) !important; color: var(--text-4) !important; font-size: 10.5px !important; }
+  .leaflet-control-attribution a { color: var(--text-3) !important; }
+  .leaflet-control-zoom a {
+    background: var(--bg-chip) !important; color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-tooltip {
+    background: var(--bg-header) !important; color: var(--text) !important;
+    border: 1px solid var(--border-strong) !important; box-shadow: none !important; font-size: 12.5px !important;
+  }
+  .leaflet-tooltip::before { border-top-color: var(--border-strong) !important; }
+  .mapstamp {
+    font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text-3);
+    letter-spacing: .02em; margin-bottom: 8px; text-transform: uppercase;
+  }
+  .maplegend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; }
+  .maplegend span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-3); }
+  .maplegend i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .mapmodes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .nearrow {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+    padding: 11px 8px; border-bottom: 1px solid var(--border-row); width: 100%;
+    background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; color: inherit;
+    cursor: pointer; text-align: left;
+  }
+  .nearrow:hover, .nearrow.sel { background: rgba(142, 200, 239, .04); }
+  .nearrow .nm { font-family: var(--cond); font-size: 19px; font-weight: 600; line-height: 1.15; }
+  .nearrow .nm.q { color: var(--accent); }
+  .nearrow .nm .star { color: var(--success); }
+  .nearrow .mt { font-size: 13.5px; color: var(--text-3); }
+  .nearrow .d { text-align: right; }
+  .nearrow .d .n { font-family: var(--cond); font-size: 19px; font-weight: 800; }
+  .nearrow .d .u { font-size: 11.5px; font-weight: 600; color: var(--text-3); display: block; line-height: 1; }
+
+  /* ---------------- Saved view ---------------- */
+  .divider {
+    display: flex; align-items: center; gap: 14px; margin: 4px 0 12px;
+    font-family: var(--cond); font-size: 19px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .divider .rule { flex: 1; height: 1px; background: var(--border); }
+  .savecard {
+    background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 12px; padding: 18px 20px; margin-bottom: 14px;
+    display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start;
+  }
+  .savecard.reg { border-color: var(--success-border); border-left-color: var(--success-fill); }
+  .savecard .cd { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--success); }
+  .savecard h3 { margin: 2px 0 2px; font-family: var(--cond); font-size: 27px; font-weight: 700; line-height: 1.1; }
+  .savecard .mt { font-size: 15px; color: var(--text-2); }
+  .savecard .milestone { font-size: 13.5px; font-weight: 700; color: var(--success); margin-top: 6px; }
+  .savecard .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .savecard .acts .btn.out { width: auto; padding: 8px 14px; }
+  .savecard .acts .btn.out.drop { color: var(--text-3); border-color: var(--border); }
+  .savecard .right { text-align: right; }
+  .savecard .right .n { font-family: var(--cond); font-size: 38px; font-weight: 800; line-height: 1; }
+  .savecard .right .lbl { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+  .sidecard {
+    background: var(--bg-rail); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 14px;
+  }
+  .sidecard h3 { margin: 0 0 10px; font-family: var(--cond); font-size: 19px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .sidecard p { margin: 0 0 12px; font-size: 14px; color: var(--text-2); }
+
+  /* ---------------- Players view ---------------- */
+  .pcard {
+    background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border-strong);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .pcard.matched { border-left-color: var(--accent); }
+  .pcard .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .pcard .pname { font-family: var(--cond); font-size: 24px; font-weight: 700; }
+  .pcard .page { font-size: 14px; color: var(--text-3); }
+  .pcard .rm { margin-left: auto; font: inherit; font-size: 13px; background: none; border: 0; color: var(--text-4); cursor: pointer; padding: 4px; }
+  .pcard .rm:hover { color: var(--accent); }
+  .elig { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; align-items: center; }
+  .elig .grp { display: flex; align-items: center; gap: 7px; }
+  .elig .org { font-weight: 700; color: var(--org-link); font-size: 14px; }
+  .elig .divbtn {
+    font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer;
+    background: var(--bg-tag); color: var(--accent); border: 0; border-radius: 5px; padding: 2px 9px;
+  }
+  .elig .divbtn.on { background: var(--accent); color: var(--accent-ink); }
+  .elig small { font-size: 12.5px; color: var(--text-4); }
+  .roster { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft); font-size: 14px; color: var(--text-3); }
+  .roster b { color: var(--text); }
+  .roster .up { color: var(--accent); font-weight: 700; }
+  .roster .pick { margin: 4px 0 0; padding: 0; list-style: none; }
+  .roster .pick button { font: inherit; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 3px 0; text-align: left; }
+
+  /* ---------------- Inputs, chips, sheet ---------------- */
+  input[type=text], input[type=email], input[type=date], select {
+    background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 8px;
+    color: var(--text); font: inherit; font-size: 15px; padding: 10px 12px; min-width: 0;
+  }
+  input::placeholder { color: var(--text-4); }
+  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-height: 34px; padding: 5px 13px;
-    border: 1.5px solid var(--grid); border-radius: 999px;
-    background: var(--row); color: var(--ink-soft);
-    font-weight: 700; font-size: 14px; line-height: 1;
-    cursor: pointer; -webkit-user-select: none; user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    background: var(--bg-chip); color: var(--text-2);
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 15px; line-height: 1;
+    min-height: 34px;
   }
-  .chip input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-  .chip.on { background: var(--pencil); border-color: var(--pencil); color: #fff; }
-  .chip:focus-within { outline: 2px solid var(--pencil); outline-offset: 2px; }
-  .control { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-soft); }
-  .control b { font-weight: 600; color: var(--ink); font-size: 14px; }
-  .control output { font-variant-numeric: tabular-nums; }
-  .locrow { display: flex; gap: 6px; }
-  .locrow input { width: 150px; padding: 5px 7px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); }
-  .btn.small { padding: 5px 10px; font-size: 13px; }
-  #locOut:empty { display: none; }
-  #locOut.err { color: #b3261e; }
-  input[type=range] { width: 150px; accent-color: var(--pencil); }
-  input[type=number], select { padding: 4px 6px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); }
-  input[type=number] { width: 58px; }
-  select { width: 74px; font-weight: 600; }
-  .orgs { display: flex; gap: 10px; }
-  .orgs label { display: flex; gap: 5px; align-items: center; font-weight: 500; cursor: pointer; }
-  .orgs input { accent-color: var(--ink); }
-  .band { display: flex; gap: 6px; align-items: center; cursor: pointer; font-weight: 500; }
-  .band input { accent-color: var(--pencil); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
-  /* My players */
-  .players { max-width: 980px; margin: 14px auto 0; padding: 0 20px; }
-  .players summary { cursor: pointer; font-weight: 800; font-size: 15px; letter-spacing: .04em; color: var(--ink-soft); list-style: none; display: flex; align-items: center; gap: 8px; }
-  .players summary::before { content: "▸"; font-size: 13px; }
-  .players[open] summary::before { content: "▾"; }
-  .players .hint { font-size: 13px; color: var(--ink-soft); margin: 6px 0 10px; }
-  .addplayer { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
-  .addplayer label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--ink-soft); }
-  .addplayer input { padding: 5px 7px; border: 1.5px solid var(--grid); border-radius: 3px; background: var(--row); font: inherit; color: var(--ink); min-width: 120px; }
-  .addplayer input[type=date] { min-width: 150px; }
-  .btn { font: inherit; font-weight: 700; border: 0; border-radius: 4px; padding: 7px 12px; cursor: pointer; background: var(--pencil); color: #fff; }
-  .btn.ghost { background: transparent; color: var(--ink-soft); padding: 4px 6px; font-weight: 600; }
-  .player { background: var(--row); border: 1.5px solid var(--grid); border-left: 5px solid var(--dirt); border-radius: 3px; padding: 10px 14px; margin: 8px 0; }
-  .player .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .player .pname { font-weight: 800; font-size: 16.5px; }
-  .player .page { color: var(--ink-soft); font-size: 14px; }
-  .player .remove { margin-left: auto; }
-  .elig { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 14px; }
-  .elig .org { color: var(--dirt); font-weight: 600; }
-  .elig button { font: inherit; font-weight: 800; color: var(--pencil); background: color-mix(in srgb, var(--grid) 45%, transparent); border: 0; border-radius: 3px; padding: 1px 8px; cursor: pointer; }
-  .elig button.on { background: var(--pencil); color: #fff; }
-  .elig small { color: var(--ink-soft); font-size: 12px; }
-  .roster { margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
-  .roster b { color: var(--ink); }
-  .roster .up { color: var(--pencil); font-weight: 700; }
-  .roster .pick { margin: 2px 0 0 0; padding: 0; list-style: none; }
-  .roster .pick li { margin: 2px 0; }
+  dialog.sheet {
+    background: var(--bg-header); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 14px;
+    padding: 22px 24px; width: min(560px, calc(100vw - 24px)); max-height: 88svh;
+  }
+  dialog.sheet::backdrop { background: rgba(4, 8, 14, .72); }
+  .sheet .shead { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .sheet .shead h2 { margin: 0; font-family: var(--cond); font-size: 24px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+  .sheet .shead .x { margin-left: auto; font: inherit; font-size: 22px; line-height: 1; background: none; border: 0; color: var(--text-3); cursor: pointer; padding: 4px 8px; }
+  .field { margin-top: 16px; }
+  .field > .eyebrow { display: block; margin-bottom: 8px; }
+  .rowflex { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .stepper { display: flex; align-items: center; gap: 12px; }
+  .stepper button {
+    width: 38px; height: 38px; font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
+    background: var(--bg-chip); color: var(--accent); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .stepper .val { font-family: var(--cond); font-size: 26px; font-weight: 800; min-width: 28px; text-align: center; }
+  .toggle {
+    width: 46px; height: 26px; border-radius: 999px; background: var(--bg-chip);
+    border: 1px solid var(--border); cursor: pointer; padding: 0; position: relative; flex: none;
+  }
+  .toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-4); transition: transform .15s ease, background .15s ease;
+  }
+  .toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+  .toggle[aria-pressed="true"]::after { transform: translateX(20px); background: var(--accent-ink); }
+  /* The stock range control paints a light track that reads as a bug on this
+     palette, so both tracks are drawn by hand. --fill is set from paintSheet. */
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 999px;
+    background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--track-2) var(--fill, 50%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); margin-top: -6px;
+  }
+  input[type=range]::-moz-range-track {
+    height: 4px; border-radius: 999px;
+    background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--track-2) var(--fill, 50%));
+  }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--accent); }
+  .distval { font-family: var(--cond); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-4); margin-top: 2px; }
+  .sfoot { display: flex; align-items: center; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+  .sfoot .btn { width: auto; padding: 13px 26px; font-size: 17px; }
+  .sfoot .note { margin-left: auto; font-size: 13.5px; color: var(--text-4); }
 
-  .tally { max-width: 980px; margin: 4px auto 0; padding: 0 20px; font-size: 15px; color: var(--ink-soft); }
-  .tally strong { color: var(--pencil); font-weight: 800; }
-  .subscribe { max-width: 980px; margin: 2px auto 0; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
-  .subscribe a { color: var(--pencil); font-weight: 600; }
-  .alerts { max-width: 980px; margin: 8px auto 0; padding: 0 20px; }
-  .alerts > label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
-  .alertrow { display: flex; flex-wrap: wrap; gap: 6px; }
-  .alertrow input { flex: 1 1 200px; min-width: 0; padding: 8px 10px; border: 1.5px solid var(--grid); border-radius: 4px; background: var(--row); font: inherit; color: var(--ink); }
-  .alertrow select { padding: 8px 6px; border: 1.5px solid var(--grid); border-radius: 4px; background: var(--row); font: inherit; color: var(--ink); }
-  .alertnote { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-soft); }
-  .alertnote.err { color: #b3261e; font-weight: 600; }
-  .alertnote.ok { color: var(--pencil); font-weight: 700; }
+  /* ---------------- Empty states, footer, misc ---------------- */
+  .empty { margin: 50px auto; max-width: 460px; text-align: center; color: var(--text-3); font-size: 15px; }
+  .empty b { display: block; font-family: var(--cond); font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .empty .acts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+  .empty .acts .btn.out { width: auto; padding: 9px 16px; }
+  .more { text-align: center; margin-top: 18px; }
+  .more button { width: 100%; max-width: 360px; }
+  footer {
+    border-top: 1px solid var(--border); margin-top: 30px;
+    padding: 22px max(26px, env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) max(26px, env(safe-area-inset-left));
+    font-size: 13px; color: var(--text-4); line-height: 1.5;
+  }
+  footer a { color: var(--accent); }
+  footer .coffee {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 12px;
+    background: #ffdd00; color: #000; text-decoration: none;
+    font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 999px;
+  }
+  .alertnote { margin: 8px 0 0; font-size: 12.5px; color: var(--text-4); }
+  .alertnote.err { color: #ff9a9a; font-weight: 600; }
+  .alertnote.ok { color: var(--success); font-weight: 700; }
 
-  .board { max-width: 980px; margin: 10px auto 60px; padding: 0 12px; }
-  .month { margin: 26px 8px 8px; font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
-  .game {
-    display: grid;
-    grid-template-columns: 84px 1fr auto auto;
-    gap: 4px 16px;
-    align-items: center;
-    background: var(--row);
-    border: 1.5px solid var(--grid);
-    border-left: 5px solid var(--grid);
-    border-radius: 3px;
-    padding: 10px 14px;
-    margin: 8px 0;
-    text-decoration: none;
-    color: inherit;
-  }
-  /* The whole card is clickable via a stretched overlay link, which leaves the
-     Directions link and the mark button as real, separately tappable controls. */
-  .game { position: relative; }
-  .rowlink { position: absolute; inset: 0; z-index: 1; border-radius: 3px; }
-  .rowlink:focus-visible { outline: 3px solid var(--pencil); outline-offset: 2px; }
-  .what, .dist, .count, .mark, .dirs { position: relative; z-index: 2; }
-  .what, .count { pointer-events: none; }
-  .mark, .dirs, .age { pointer-events: auto; }
-  .dirs { display: inline-block; margin-top: 3px; font-size: 12.5px; font-weight: 600; color: var(--pencil); }
-  .wx { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; white-space: nowrap; }
-  .wx.wet { color: #1f6fb8; }
-  .wx.storm { color: #b3261e; }
-  .mark {
-    margin-top: 6px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
-    background: transparent; color: var(--ink-soft);
-    border: 1.5px solid var(--grid); border-radius: 999px; padding: 4px 11px;
-  }
-  .mark:hover { border-color: var(--pencil); color: var(--pencil); }
-  .game.going { border-left-color: #1f7a4d; background: color-mix(in srgb, #1f7a4d 7%, var(--row)); }
-  .game.going .mark { background: #1f7a4d; border-color: #1f7a4d; color: #fff; }
-  .game.qualifies {
-    border-left-color: var(--pencil);
-    border-color: color-mix(in srgb, var(--pencil) 45%, var(--grid));
-    border-left-color: var(--pencil);
-    background: color-mix(in srgb, var(--pencil) 9%, var(--row));
-  }
-  .game.qualifies .name { color: var(--pencil); }
-  .when { text-align: center; line-height: 1.15; }
-  .when .day { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .when .dow { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
-  .when .thru { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin-top: 1px; }
-  .what .name { font-weight: 600; font-size: 16.5px; }
-  .what .where { font-size: 14px; color: var(--ink-soft); }
-  .what .where em { font-style: normal; color: var(--dirt); font-weight: 600; }
-  .dist { font-variant-numeric: tabular-nums; font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
-  .dist b { color: var(--ink); font-weight: 600; }
-  .count { display: flex; flex-direction: column; gap: 10px; }
-  .tier { position: relative; text-align: center; min-width: 58px; line-height: 1.1; }
-  .tier .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .tier .lbl { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
-  .tier .delta { font-size: 12px; font-weight: 600; color: var(--pencil); }
-  .tier .classes { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; white-space: nowrap; }
-  .tier .classes b { color: var(--ink); font-weight: 800; }
-  .count.multi .tier .n { font-size: 18px; }
-  .tier.q .n { color: var(--pencil); }
-  .tier.q .lbl { color: var(--pencil); }
-  .approx { font-size: 11.5px; color: var(--dirt); font-weight: 600; }
-  .turf {
-    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 3px;
-    font-size: 11px; font-weight: 800; letter-spacing: .02em;
-    background: #1f7a4d; color: #fff; vertical-align: 1px;
-  }
-  .ages { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-  .age {
-    font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--ink-soft);
-    background: color-mix(in srgb, var(--grid) 45%, transparent);
-    border-radius: 3px; padding: 1px 7px; font-variant-numeric: tabular-nums;
-  }
-  .age b { margin-left: 5px; color: var(--ink); font-weight: 800; }
-  .age.hit { background: var(--pencil); color: #fff; }
-  .age.hit b { color: #fff; }
+  /* ---------------- Bottom tab bar (phone) ---------------- */
+  .tabbar { display: none; }
 
-  .more { max-width: 980px; margin: 14px auto 0; padding: 0 12px; text-align: center; }
-  .more button {
-    font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
-    background: var(--row); color: var(--pencil);
-    border: 1.5px solid var(--pencil); border-radius: 6px; padding: 11px 22px; width: 100%;
-    max-width: 360px;
-  }
-  .more button:hover { background: color-mix(in srgb, var(--pencil) 10%, var(--row)); }
-
-  .empty { margin: 60px auto; max-width: 460px; text-align: center; color: var(--ink-soft); }
-  .empty b { color: var(--ink); }
-  .note { max-width: 980px; margin: 0 auto 16px; padding: 0 20px; font-size: 13px; color: var(--ink-soft); }
-  .support { max-width: 980px; margin: 0 auto 48px; padding: 0 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 13px; color: var(--ink-soft); }
-  .support a[href^="mailto:"] { color: var(--pencil); font-weight: 600; line-height: inherit; display: inline; }
-  .support a { display: inline-block; line-height: 0; }
-  .support img { height: 40px; width: auto; border-radius: 6px; }
-
-  @media (min-width: 700px) {
-    .filters > summary { display: none; }
-    .filters[open] > summary { margin-bottom: 0; }
-  }
-
-  /* Phones */
-  @media (max-width: 620px) {
-    header {
-      padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+  /* ---------------- Responsive ----------------
+     Above 1100 the board keeps its detail rail. Below that the rail becomes a
+     sheet you open by tapping a row, because a 372px column and a readable
+     board do not both fit. */
+  @media (max-width: 1100px) {
+    .pane { grid-template-columns: 1fr; }
+    .rail.detail {
+      position: fixed; inset: auto 0 0 0; z-index: 40; max-height: 82svh; overflow: auto;
+      border-left: 0; border-top: 1px solid var(--border-strong);
+      border-radius: 14px 14px 0 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .5);
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
     }
-    .masthead { gap: 10px 12px; }
-    .masthead .logo { height: 40px; width: 40px; }
-    .masthead h1 { font-size: 22px; }
-    .masthead p {
-      flex-basis: 100%; font-size: 12.5px; line-height: 1.3;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    .rail.detail[data-open="false"] { display: none; }
+    .railclose { display: block !important; }
+  }
+  .railclose { display: none; width: 100%; margin-bottom: 10px; }
+
+  @media (max-width: 760px) {
+    header.masthead { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); gap: 10px; }
+    .masthead .logo { width: 28px; height: 28px; }
+    .masthead h1 { font-size: 20px; }
+    .fresh { font-size: 12px; }
+    .fresh .full { display: none; }
+    .filterbar {
+      padding: 12px 14px; gap: 10px; flex-direction: column; align-items: stretch;
     }
-    .masthead .updated { margin-left: 0; }
-    .masthead .share { margin-left: auto; }
-    .masthead .coffee { margin-left: 0; }
-    .filters { padding: 0 16px; }
-    .legend { gap: 14px 18px; }
-    .legend .control { flex-basis: 100%; }
-    .chip { min-height: 38px; font-size: 15px; padding: 6px 15px; }
-    input[type=range] { width: min(100%, 220px); }
-    .control.dist-ctl { flex-basis: 100%; }
-    .locrow input { width: 100%; }
-    .control.loc-ctl { flex-basis: 100%; }
-    .board { padding: 0 8px; }
-    .game { grid-template-columns: 56px 1fr auto; gap: 3px 10px; padding: 10px 12px; }
-    .dist { grid-column: 2; font-size: 13.5px; }
-    .count { grid-row: 1 / span 2; grid-column: 3; gap: 6px; }
-    .when .day { font-size: 19px; }
-    .what .name { font-size: 15.5px; }
-    .note, .subscribe, .tally, .players { padding: 0 16px; }
-  }
-  /* Only devices with a real pointer get hover states */
-  @media (hover: hover) {
-    .game:hover { border-color: var(--pencil); }
-  }
-  /* Larger touch targets on touch devices */
-  @media (pointer: coarse) {
-    .orgs label, .band { min-height: 32px; }
-    input[type=checkbox] { width: 20px; height: 20px; }
-    input[type=number], select { min-height: 36px; }
+    .filterbar .eyebrow { display: none; }
+    .filterbar .sumbox {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px;
+    }
+    .summary { font-size: 16px; }
+    nav.views { display: none; }
+    .col-main { padding: 16px 14px 30px; }
+    .rail { padding: 18px 16px 24px; }
+
+    /* Hero collapses to two rows: date + title, then the count. */
+    .hero { grid-template-columns: 72px 1fr; gap: 14px; padding: 16px 16px 18px; }
+    .hero .date .dd { font-size: 42px; }
+    .hero .title { font-size: 26px; }
+    .hero .meta { font-size: 14.5px; }
+    .hero .right { grid-column: 1 / -1; text-align: left; display: flex; align-items: flex-end; gap: 14px; min-width: 0; }
+    .hero .right .n { font-size: 40px; }
+    .hero .spark { margin: 0; }
+
+    .row { grid-template-columns: 48px 1fr auto; gap: 4px 12px; padding: 13px 2px; }
+    .row .dist { grid-column: 2; grid-row: 2; text-align: left; font-size: 13.5px; }
+    .row .count { grid-column: 3; grid-row: 1 / span 2; text-align: right; min-width: 92px; }
+    .row .bar { margin-left: auto; width: 80px; }
+    .row .when .dd { font-size: 22px; }
+    .row .name { font-size: 18px; }
+
+    .savecard { grid-template-columns: 1fr; }
+    .savecard .right { text-align: left; display: flex; align-items: baseline; gap: 8px; }
+    #mapCanvas { height: 60svh; }
+
+    /* Bottom tabs replace the masthead nav; ≥44px targets. */
+    .tabbar {
+      display: grid; grid-template-columns: repeat(4, 1fr); position: sticky; bottom: 0; z-index: 30;
+      background: var(--bg-header); border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tabbar button {
+      font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      background: none; border: 0; color: var(--text-4); cursor: pointer;
+      min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    }
+    .tabbar button[aria-current="true"] { color: var(--accent); }
+    .tabbar button i { font-style: normal; font-size: 15px; line-height: 1; }
+    body { padding-bottom: 0; }
+    .rail.detail { max-height: 76svh; }
   }
 
-  /* Install-to-home-screen banner */
-  .install {
-    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
-    max-width: 560px; margin: 0 auto; z-index: 10;
-    background: var(--ink); color: var(--paper);
-    border: 1.5px solid var(--feather); border-radius: 10px;
-    padding: 12px 14px; display: flex; gap: 12px; align-items: center;
-    box-shadow: 0 8px 24px rgba(11, 18, 32, .35);
-    font-size: 14px; line-height: 1.35;
+  @media (max-width: 420px) {
+    .row { grid-template-columns: 44px 1fr auto; }
+    .hero .tags .tag { font-size: 11.5px; padding: 3px 8px; }
   }
-  /* .install sets display:flex, which would beat the UA's [hidden] rule. */
-  .install[hidden] { display: none !important; }
-  .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
-  .install b { display: block; font-size: 15px; }
-  .install .steps { color: #b9d3ea; }
-  .install .steps kbd { font: inherit; font-weight: 700; color: var(--feather); }
-  .install button {
-    font: inherit; font-weight: 700; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer;
-    background: var(--feather); color: var(--ink);
-  }
-  .install .close { background: transparent; color: #8fb0cc; padding: 6px 8px; font-size: 20px; line-height: 1; }
-  @media (prefers-reduced-motion: no-preference) {
-    .game { transition: border-left-color .15s ease; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
   }
 </style>
 </head>
 <body>
-<header>
-  <div class="masthead">
-    <img class="logo" src="icon-192.png" alt="" width="52" height="52">
-    <h1>Baseball Time <span>in TX</span></h1>
-    <p>10U–14U tournaments with open brackets near <span id="locTag">Sanger, TX</span> — nine tournament orgs, checked twice daily</p>
-    <div class="updated" id="updated"></div>
-    <button class="share" id="shareBtn" type="button" aria-label="Share this site">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M12 15V3M12 3 7.5 7.5M12 3l4.5 4.5"/>
-        <path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/>
-      </svg>
-      <span id="shareLabel">Share</span>
-    </button>
-    <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕ Buy me a coffee</a>
-  </div>
+
+<header class="masthead">
+  <img class="logo" src="icon-192.png" alt="" width="34" height="34">
+  <h1>Baseball <span>Time</span></h1>
+  <div class="fresh" id="fresh" hidden></div>
+  <button class="pill" id="shareBtn" type="button">Share</button>
 </header>
 
-<details class="filters" id="filters">
-  <summary>
-    <span class="sumtext" id="filterSummary">Filters</span>
-    <span class="sumhint">Edit</span>
-  </summary>
-  <div class="legend">
-  <form class="control loc-ctl" id="locForm">
-    <b>From</b>
-    <div class="locrow">
-      <input id="locInput" placeholder="City or zip" maxlength="60" autocomplete="off" value="Sanger, TX">
-      <button class="btn small" type="submit">Set</button>
-    </div>
-    <output id="locOut"></output>
-  </form>
-  <div class="control dist-ctl">
-    <b>Distance</b>
-    <input type="range" id="maxDist" min="0" max="17" step="1" value="9">
-    <output id="distOut">up to 80 mi</output>
+<div class="filterbar">
+  <span class="eyebrow">Showing</span>
+  <div class="sumbox">
+    <span class="summary" id="summary">Loading…</span>
+    <button class="pill ghost" id="changeBtn" type="button">Change</button>
   </div>
-  <div class="control">
-    <b>When</b>
-    <div class="chips" id="windows">
-      <label class="chip"><input type="radio" name="win" data-win="30">30 days</label>
-      <label class="chip"><input type="radio" name="win" data-win="90" checked>3 months</label>
-      <label class="chip"><input type="radio" name="win" data-win="180">6 months</label>
-      <label class="chip"><input type="radio" name="win" data-win="0">All</label>
-    </div>
-  </div>
-  <div class="control">
-    <b>Show</b>
-    <div class="chips">
-      <label class="chip"><input type="checkbox" id="qualOnly">Qualifying only</label>
-    </div>
-  </div>
-  <div class="control">
-    <b>Age</b>
-    <div class="chips" id="ages">
-      <label class="chip"><input type="checkbox" data-age="10U">10U</label>
-      <label class="chip"><input type="checkbox" data-age="11U">11U</label>
-      <label class="chip"><input type="checkbox" data-age="12U">12U</label>
-      <label class="chip"><input type="checkbox" data-age="13U">13U</label>
-      <label class="chip"><input type="checkbox" data-age="14U" checked>14U</label>
-    </div>
-  </div>
-  <div class="control">
-    <b>Min teams per age</b>
-    <input type="number" id="minTeams" min="0" max="30" value="3">
-  </div>
-  <div class="control">
-    <b>Orgs</b>
-    <div class="chips">
-      <label class="chip"><input type="checkbox" data-org="NCS" checked>NCS</label>
-      <label class="chip"><input type="checkbox" data-org="PAC" checked>PAC</label>
-      <label class="chip"><input type="checkbox" data-org="PPS" checked title="Premier Prospects Sports">PPS</label>
-      <label class="chip"><input type="checkbox" data-org="USSSA" checked>USSSA</label>
-      <label class="chip"><input type="checkbox" data-org="PG" checked title="Perfect Game">PG</label>
-      <label class="chip"><input type="checkbox" data-org="24S" checked title="24 Sports">24S</label>
-      <label class="chip"><input type="checkbox" data-org="RBI" checked title="Rec Baseball Innovations">RBI</label>
-      <label class="chip"><input type="checkbox" data-org="FT" checked title="Five Tool">FT</label>
-    </div>
-  </div>
-  </div>
-</details>
-
-<details class="players" id="players">
-  <summary>My players <span id="playerCount"></span></summary>
-  <p class="hint">Saved only on this device. Age divisions come from each org's cutoff rule; the NCS roster is looked up live from their public player search.</p>
-  <form class="addplayer" id="addPlayer">
-    <label>First name <input name="first" required maxlength="40" autocomplete="off"></label>
-    <label>Last name <input name="last" required maxlength="40" autocomplete="off"></label>
-    <label>Birthdate <input name="dob" type="date" required></label>
-    <button class="btn" type="submit">Add</button>
-  </form>
-  <div id="playerList"></div>
-</details>
-
-<div class="tally" id="tally"></div>
-<p class="subscribe">
-  <a id="icsLink" href="#" title="Subscribe in Apple Calendar, Google Calendar or Outlook">Add these to your calendar</a>
-  · <a href="#" id="alertToggle">Email me new matches</a>
-</p>
-<form class="alerts" id="alertForm" hidden>
-  <label for="alertEmail">Email me when a new tournament matches this search</label>
-  <div class="alertrow">
-    <input id="alertEmail" type="email" required placeholder="you@example.com" autocomplete="email" maxlength="120">
-    <select id="alertFreq" aria-label="How often">
-      <option value="weekly" selected>Weekly</option>
-      <option value="daily">Daily</option>
-    </select>
-    <button class="btn" type="submit">Sign up</button>
-  </div>
-  <p class="alertnote" id="alertNote">We'll send a confirmation first. Only new tournaments, never a digest of the same events, and every email has a one-tap unsubscribe.</p>
-</form>
-<main class="board" id="board"></main>
-<div class="more" id="more" hidden><button type="button" id="moreBtn"></button></div>
-<p class="note">Weather shows for weekend events inside the next 16 days, which is as far as any forecast reaches. A <span class="turf">Turf</span> tag means the organizer advertises turf, which usually plays through rain when grass fields get called off. No organizer publishes the surface as data, so no tag means we don't know, not that it's grass. Counts come straight from each organizer and are re-checked twice a day. Where an age runs more than one skill class, the split is shown under the total, because a 10U bracket with eleven AA teams and one Open team is two different tournaments. Highlighted rows qualify under your current filters. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Counts update on the morning and evening scrape; tap any row to open the event's registration page.</p>
-
-<div class="support">
-  <span>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running.
-  Questions, corrections, or a tournament we're missing? <a href="mailto:info@youthbaseballtime.com">info@youthbaseballtime.com</a>.</span>
-  <a href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=sawtech&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" loading="lazy"></a>
+  <nav class="views" id="views">
+    <button type="button" data-view="board" aria-current="true">Board</button>
+    <button type="button" data-view="map">Map</button>
+    <button type="button" data-view="saved">Saved<i id="navSaved"></i></button>
+    <button type="button" data-view="players">Players<i id="navPlayers"></i></button>
+  </nav>
 </div>
 
-<div class="install" id="install" hidden>
-  <img src="icon-192.png" alt="">
-  <div style="flex:1">
-    <b>Add Baseball Time to your home screen</b>
-    <span class="steps" id="installSteps"></span>
-  </div>
-  <button id="installBtn" hidden>Install</button>
-  <button class="close" id="installClose" aria-label="Dismiss">×</button>
-</div>
+<main>
+  <!-- Board -->
+  <section class="pane" id="viewBoard">
+    <div class="col-main">
+      <div id="heroWrap"></div>
+      <div id="board"></div>
+      <div class="more" id="more" hidden><button class="btn out" type="button" id="moreBtn"></button></div>
+    </div>
+    <aside class="rail detail" id="detail" data-open="false"></aside>
+  </section>
+
+  <!-- Map -->
+  <section class="pane" id="viewMap" hidden>
+    <div class="col-main">
+      <div class="mapstamp" id="mapStamp"></div>
+      <div id="mapCanvas"></div>
+      <div class="maplegend">
+        <span><i style="background:var(--accent)"></i>Qualifies</span>
+        <span><i style="background:var(--accent-mid)"></i>Below minimum</span>
+        <span><i style="background:var(--success)"></i>Saved</span>
+      </div>
+      <div class="mapmodes">
+        <button class="chip on" type="button" data-pins="fill">Pins by fill</button>
+        <button class="chip" type="button" data-pins="date">Pins by date</button>
+      </div>
+      <p class="alertnote" id="mapNote"></p>
+    </div>
+    <aside class="rail">
+      <span class="eyebrow">Nearest first</span>
+      <div id="nearList"></div>
+    </aside>
+  </section>
+
+  <!-- Saved & registered -->
+  <section class="pane" id="viewSaved" hidden>
+    <div class="col-main" id="savedMain"></div>
+    <aside class="rail" id="savedSide"></aside>
+  </section>
+
+  <!-- My players -->
+  <section class="pane solo" id="viewPlayers" hidden>
+    <div class="col-main">
+      <div class="divider">My players<span class="rule"></span><span class="tally">Kept on this device only</span></div>
+      <div id="playerList"></div>
+      <form class="rowflex" id="addPlayer" style="margin-top:16px">
+        <input type="text" name="first" placeholder="First name" required maxlength="40" autocomplete="off" style="flex:1 1 130px">
+        <input type="text" name="last" placeholder="Last name" required maxlength="40" autocomplete="off" style="flex:1 1 130px">
+        <input type="date" name="dob" required aria-label="Birthdate" style="flex:1 1 150px">
+        <button class="btn" type="submit" style="width:auto;padding:11px 22px">Add</button>
+      </form>
+      <p class="alertnote">Divisions come from each org&#39;s own cutoff rule, so a birthdate can land in two different ages depending on who runs the tournament. Tap a division to filter the board to it.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" id="tabbar">
+  <button type="button" data-view="board" aria-current="true"><i>▦</i>Board</button>
+  <button type="button" data-view="map"><i>◎</i>Map</button>
+  <button type="button" data-view="saved"><i>★</i><span id="tabSaved">Saved</span></button>
+  <button type="button" data-view="players"><i>●</i>Players</button>
+</nav>
+
+<footer>
+  <p id="footNote">Weather shows for weekend events inside the next 16 days, which is as far as any forecast reaches. A <b style="color:var(--success)">Turf</b> tag means the organizer advertises turf, which usually plays through rain when grass fields get called off — no organizer publishes the surface as data, so no tag means we don't know, not that it's grass. Counts come straight from each organizer and are re-checked twice a day. PAC events show total registrations across all ages (marked ≈) because PAC doesn't publish per-division team lists. Distances are straight-line from your chosen location, not driving miles.</p>
+  <p>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running. Questions, corrections, or a tournament we're missing? <a href="mailto:info@youthbaseballtime.com">info@youthbaseballtime.com</a>.</p>
+  <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+</footer>
+
+<!-- Filter sheet -->
+<dialog class="sheet" id="sheet">
+  <form method="dialog" id="sheetForm">
+    <div class="shead">
+      <h2>Change what you see</h2>
+      <button class="x" type="button" id="sheetClose" aria-label="Close">✕</button>
+    </div>
+
+    <div class="field">
+      <span class="eyebrow">Age</span>
+      <div class="chips" id="fAges"></div>
+    </div>
+
+    <div class="field rowflex">
+      <div style="flex:1 1 220px">
+        <span class="eyebrow" style="display:block;margin-bottom:8px">Measure from</span>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="fLoc" placeholder="City or zip" maxlength="60" autocomplete="off" style="flex:1">
+          <button class="btn out" type="button" id="fLocSet" style="width:auto;padding:10px 14px">Set</button>
+        </div>
+        <p class="alertnote" id="fLocOut"></p>
+      </div>
+      <div style="flex:1 1 220px">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span class="eyebrow">Distance</span>
+          <span class="distval" id="fDistVal"></span>
+        </div>
+        <input type="range" id="fDist" min="0" max="17" step="1">
+        <div class="ticks"><span>10</span><span>100</span><span>500</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="eyebrow">When</span>
+      <div class="chips" id="fWhen"></div>
+    </div>
+
+    <div class="field rowflex">
+      <div>
+        <span class="eyebrow" style="display:block;margin-bottom:8px">Minimum teams in your age</span>
+        <div class="stepper">
+          <button type="button" id="fMinDown" aria-label="Fewer">−</button>
+          <span class="val num" id="fMinVal"></span>
+          <button type="button" id="fMinUp" aria-label="More">+</button>
+        </div>
+      </div>
+      <div>
+        <span class="eyebrow" style="display:block;margin-bottom:8px">Hide events under the minimum</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="toggle" type="button" id="fHide" aria-pressed="false"><span class="sr">Hide events under the minimum</span></button>
+          <span id="fHideLbl" style="font-size:14px;color:var(--text-3)">Off</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="eyebrow" id="fOrgsLbl">Orgs</span>
+      <div class="chips" id="fOrgs"></div>
+    </div>
+
+    <div class="sfoot">
+      <button class="btn" type="button" id="fApply"></button>
+      <button class="btn out" type="button" id="fReset" style="width:auto;padding:11px 18px">Reset</button>
+      <span class="note">Saved on this device</span>
+    </div>
+  </form>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
-
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
-const $ = (s) => document.querySelector(s);
-const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
-// Slider stops rather than a linear range: fine control where people actually
-// choose (30-100 mi) without giving up the long hauls a travel team will drive.
-const DIST_STOPS = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 125, 150, 200, 250, 300, 400, 500];
-let events = [], baselines = new Map();
-// Rows rendered at a time; the rest is one tap away. Smaller on phones so the
-// footer (contact address, support link) stays a few swipes off rather than a
-// few hundred, since the season runs to June 2027.
-// innerWidth can be 0 in a hidden/embedded frame; assume desktop rather than
-// silently giving everyone the phone layout.
-const PAGE = (window.innerWidth || 1024) <= 620 ? 25 : 40;
-let visible = PAGE;
-let currentFilters = {};   // what an email alert would watch, kept in step with the board
 
-// Events the reader says they're registered for. Device-local, like players.
-let registered = new Set();
-try { registered = new Set(JSON.parse(localStorage.getItem("registered") || "[]")); } catch {}
-const saveRegistered = () => {
-  try { localStorage.setItem("registered", JSON.stringify([...registered])); } catch {}
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
+const ORGS = [
+  { id: "NCS", title: "National Championship Sports" },
+  { id: "PAC", title: "PAC Sports" },
+  { id: "PPS", title: "Premier Prospects Sports" },
+  { id: "USSSA", title: "USSSA" },
+  { id: "PG", title: "Perfect Game" },
+  { id: "24S", title: "24 Sports" },
+  { id: "RBI", title: "Rec Baseball Innovations" },
+  { id: "FT", title: "Five Tool" },
+];
+// Slider stops rather than a linear range: fine control where people actually
+// choose (30–100 mi) without giving up the long hauls a travel team will drive.
+const DIST_STOPS = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 125, 150, 200, 250, 300, 400, 500];
+const WINDOWS = [{ d: 30, l: "30 days" }, { d: 90, l: "3 months" }, { d: 180, l: "6 months" }, { d: 0, l: "All" }];
+// A board row's fill bar needs a denominator. Divisions don't publish a cap, so
+// we draw against a nominal full bracket — enough that a healthy field reads as
+// nearly full and a thin one reads as thin.
+const FULL_BRACKET = 16;
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const PAGE = (window.innerWidth || 1024) <= 760 ? 25 : 40;
+
+const DEFAULT_LOC = { label: "Sanger, TX", lat: 33.3632, lng: -97.1739 };
+const DEFAULTS = { ages: ["14U"], dist: 9, win: 90, minTeams: 3, hideBelow: false, orgs: ORGS.map((o) => o.id) };
+
+/* ---------------------------------------------------------------------------
+   State. Everything here is device-local: filters, players and saved events are
+   never sent anywhere, which is what the "Saved on this device" note promises.
+   --------------------------------------------------------------------------- */
+const store = {
+  get(k, fb) { try { const v = localStorage.getItem(k); return v === null ? fb : JSON.parse(v); } catch { return fb; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
-// ---- Where to measure distance from. Default is Sanger, TX; the user can
-// set any city or US zip. Stored per device. Distances are computed here
-// from each event's lat/lng, so the scraper's Sanger-based column is unused.
-const DEFAULT_LOC = { label: "Sanger, TX", lat: 33.3632, lng: -97.1739 };
 let loc = DEFAULT_LOC;
-try { const saved = JSON.parse(localStorage.getItem("loc") || "null"); if (saved && isFinite(saved.lat) && isFinite(saved.lng) && saved.label) loc = saved; } catch {}
+{
+  const s = store.get("loc", null);
+  if (s && isFinite(s.lat) && isFinite(s.lng) && s.label) loc = s;
+}
+
+let filters = {
+  ages: (() => { const a = store.get("ages", DEFAULTS.ages); return Array.isArray(a) && a.some((x) => DIVISIONS.includes(x)) ? a.filter((x) => DIVISIONS.includes(x)) : DEFAULTS.ages; })(),
+  dist: (() => { const d = store.get("dist", DEFAULTS.dist); return DIST_STOPS[+d] !== undefined ? +d : DEFAULTS.dist; })(),
+  win: (() => { const w = +store.get("win", DEFAULTS.win); return WINDOWS.some((x) => x.d === w) ? w : DEFAULTS.win; })(),
+  minTeams: (() => { const m = +store.get("minTeams", DEFAULTS.minTeams); return isFinite(m) && m >= 0 && m <= 30 ? m : DEFAULTS.minTeams; })(),
+  // "Qualifying only" was the same idea under an older name; carry it forward.
+  hideBelow: store.get("hideBelow", store.get("qualOnly", "0") === "1" || store.get("qualOnly", false) === true),
+  orgs: (() => { const o = store.get("orgs", DEFAULTS.orgs); return Array.isArray(o) && o.length ? o.filter((x) => ORGS.some((r) => r.id === x)) : DEFAULTS.orgs; })(),
+};
+
+// Saved events: none → watching → registered. The old build stored a flat array
+// of registered ids, so fold that in rather than dropping what people marked.
+let saved = new Map(Object.entries(store.get("saved", {})));
+{
+  const legacy = store.get("registered", []);
+  if (Array.isArray(legacy) && legacy.length && !saved.size) {
+    for (const id of legacy) saved.set(id, "registered");
+    persistSaved();
+  }
+}
+function persistSaved() { store.set("saved", Object.fromEntries(saved)); }
+
+let players = store.get("players", []);
+const savePlayers = () => store.set("players", players);
+
+let events = [], baselines = new Map(), historyCache = new Map();
+let view = "board", selectedId = null, visible = PAGE, pinMode = "fill";
+// On phones the detail rail is a bottom sheet, so it stays shut until a row is
+// tapped. Above 1100px the CSS ignores this and the rail is always in view.
+let detailOpen = false;
+let currentFilters = {};   // what an email alert would watch, kept in step with the board
+
+/* ---------------------------------------------------------------------------
+   Geography
+   --------------------------------------------------------------------------- */
 const milesBetween = (a, b) => {
   const R = 3958.8, toR = (d) => (d * Math.PI) / 180;
   const dLat = toR(b.lat - a.lat), dLng = toR(b.lng - a.lng);
@@ -505,7 +790,6 @@ const milesBetween = (a, b) => {
 };
 const STATE_NAMES = { TX: "Texas", OK: "Oklahoma", LA: "Louisiana", AR: "Arkansas", NM: "New Mexico", KS: "Kansas", MO: "Missouri", CO: "Colorado" };
 
-// Zip → Zippopotam; city → Open-Meteo, US only, preferring "City, ST" state.
 async function geocode(q) {
   q = q.trim();
   if (/^\d{5}$/.test(q)) {
@@ -528,53 +812,73 @@ async function geocode(q) {
 }
 
 function applyLoc() {
-  $("#locTag").textContent = loc.label;
-  $("#locInput").value = loc.label;
   for (const e of events) e.miles = e.lat != null && e.lng != null ? milesBetween(loc, e) : null;
 }
 
-$("#locForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const q = $("#locInput").value.trim();
-  const out = $("#locOut");
-  if (!q) return;
-  out.className = ""; out.textContent = "Looking up…";
-  try {
-    loc = await geocode(q);
-    try { localStorage.setItem("loc", JSON.stringify(loc)); } catch {}
-    out.textContent = "";
-    applyLoc();
-    visible = PAGE;
-    render();
-  } catch (err) {
-    out.className = "err"; out.textContent = err.message;
-  }
-});
+/* ---------------------------------------------------------------------------
+   Counts
+   --------------------------------------------------------------------------- */
+// Exact team count for an event in a division, or null when the org doesn't
+// publish a team list. A non-empty division_counts means the list was parsed,
+// so a missing age there is a real zero. Rows scraped before per-division
+// counts existed only carry teams_14u, so fall back to it for 14U.
+function exactCount(row, div) {
+  const counts = row?.division_counts || {};
+  if (Object.keys(counts).length) return counts[div] ?? 0;
+  if (div === "14U" && row?.teams_14u != null) return row.teams_14u;
+  return null;
+}
+const countOf = (e, div) => exactCount(e, div) ?? e.total_registered;
+const isApprox = (e, div) => exactCount(e, div) == null;
+const agesOf = (e) => filters.ages.filter((a) => (e.divisions || []).includes(a));
+const qualifies = (e) => agesOf(e).some((a) => countOf(e, a) >= filters.minTeams);
+// When several ages are picked, the row leads with the one that best clears the
+// floor — that is the age the reader is deciding on.
+function primaryAge(e) {
+  const mine = agesOf(e);
+  if (!mine.length) return null;
+  return mine.slice().sort((a, b) => countOf(e, b) - countOf(e, a))[0];
+}
+// Saved events and the detail rail can outlive the filter that found them — you
+// save a 12U tournament, then switch the board to 14U. Fall back to the event's
+// own best-attended tracked division rather than reporting zero teams.
+function displayAge(e) {
+  return primaryAge(e)
+    || DIVISIONS.filter((d) => (e.divisions || []).includes(d)).sort((a, b) => countOf(e, b) - countOf(e, a))[0]
+    || filters.ages[0];
+}
+function weekDelta(e, div) {
+  const base = baselines.get(e.id);
+  if (!base) return 0;
+  const first = exactCount(base, div);
+  if (first == null) return 0;
+  const now = exactCount(e, div);
+  return now == null ? 0 : now - first;
+}
 
-// Remember the picked ages and the qualifying-only toggle across visits.
-try {
-  const saved = JSON.parse(localStorage.getItem("ages") || "null");
-  if (Array.isArray(saved) && saved.some((a) => DIVISIONS.includes(a))) {
-    for (const cb of document.querySelectorAll("[data-age]")) cb.checked = saved.includes(cb.dataset.age);
-  }
-  $("#qualOnly").checked = localStorage.getItem("qualOnly") === "1";
-  const win = localStorage.getItem("win");
-  const winEl = win && document.querySelector(`[data-win="${win}"]`);
-  if (winEl) winEl.checked = true;
-  const dist = localStorage.getItem("dist");
-  if (dist !== null && DIST_STOPS[+dist] !== undefined) $("#maxDist").value = dist;
-} catch {}
-const selectedAges = () => DIVISIONS.filter((a) => $(`[data-age="${a}"]`).checked);
-const windowDays = () => +(document.querySelector("[data-win]:checked")?.dataset.win ?? 0);
-const listAges = (ages) => ages.join(" + ");
-
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+/* ---------------------------------------------------------------------------
+   Dates
+   --------------------------------------------------------------------------- */
 const fmtDay = (iso) => {
   const d = new Date(iso + "T12:00:00");
-  return { day: d.getDate(), dow: DOW[d.getDay()], month: MONTHS[d.getMonth()], year: d.getFullYear(), t: d.getTime() };
+  return { day: d.getDate(), dow: DOW[d.getDay()], month: MONTHS[d.getMonth()], mo: MONTHS[d.getMonth()].slice(0, 3), year: d.getFullYear(), t: d.getTime() };
+};
+const daysUntil = (iso) => Math.round((new Date(iso + "T12:00:00") - new Date().setHours(12, 0, 0, 0)) / 86400e3);
+function dayRange(e) {
+  const a = fmtDay(e.start_date);
+  if (!e.end_date || e.end_date === e.start_date) return { dd: String(a.day), dow: a.dow.toUpperCase(), a };
+  const b = fmtDay(e.end_date);
+  const same = b.month === a.month && b.year === a.year;
+  return { dd: same ? `${a.day}–${b.day}` : String(a.day), dow: `${a.dow}–${b.dow}`.toUpperCase(), a, b, thru: same ? "" : `thru ${b.mo} ${b.day}` };
+}
+const dateLine = (e) => {
+  const r = dayRange(e);
+  return r.b ? `${r.a.mo} ${r.a.day}–${r.b.month === r.a.month ? r.b.day : r.b.mo + " " + r.b.day}` : `${r.a.mo} ${r.a.day}`;
 };
 
+/* ---------------------------------------------------------------------------
+   Load
+   --------------------------------------------------------------------------- */
 async function load() {
   const today = new Date().toISOString().slice(0, 10);
   // snapshot_baseline is a view: each event's oldest snapshot from the last
@@ -583,192 +887,562 @@ async function load() {
     db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date"),
     db.from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts"),
   ]);
-  if (ev.error) { $("#board").innerHTML = `<div class="empty">Couldn't load events: ${ev.error.message}. Check the anon key and that the tourneyscan schema is exposed in the Data API.</div>`; return; }
+  if (ev.error) {
+    $("#board").innerHTML = `<div class="empty"><b>Couldn't load events.</b>${esc(ev.error.message)}</div>`;
+    return;
+  }
   events = ev.data || [];
   applyLoc();
   for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
-  const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
-  if (latest) {
-    const el = $("#updated");
-    el.title = new Date(latest).toLocaleString();
-    const show = () => {
-      const mins = Math.round((Date.now() - latest) / 60000);
-      el.textContent = mins < 2 ? "Checked just now"
-        : mins < 60 ? `Checked ${mins} min ago`
-        : mins < 120 ? "Checked 1 hour ago"
-        : mins < 1440 ? `Checked ${Math.round(mins / 60)} hours ago`
-        : `Checked ${Math.round(mins / 1440)} days ago`;
-    };
-    show();
-    setInterval(show, 60000);
-  }
+  paintFreshness();
   render();
 }
 
-// Exact team count for an event in the given division, or null if the org
-// doesn't publish a team list. A non-empty division_counts means the list was
-// parsed, so a missing age there is a real zero. Rows scraped before
-// per-division counts existed only carry teams_14u, so fall back to it for 14U.
-function exactCount(row, div) {
-  const counts = row.division_counts || {};
-  if (Object.keys(counts).length) return counts[div] ?? 0;
-  if (div === "14U" && row.teams_14u != null) return row.teams_14u;
-  return null;
-}
-
-function weekDelta(id, current, div) {
-  const base = baselines.get(id);
-  if (!base) return 0;
-  const first = exactCount(base, div);
-  return first == null ? 0 : current - first;
-}
-
-function render() {
-  const maxDist = DIST_STOPS[+$("#maxDist").value] ?? 80;
-  const minTeams = +$("#minTeams").value;
-  const ages = selectedAges();
-  const qualOnly = $("#qualOnly").checked;
-  const days = windowDays();
-  const cutoff = days ? new Date(Date.now() + days * 86400e3).toISOString().slice(0, 10) : null;
-  const inWindow = (e) => !cutoff || (e.start_date || "") <= cutoff;
-  for (const b of document.querySelectorAll("[data-setage]")) b.classList.toggle("on", ages.includes(b.dataset.setage));
-  try {
-    localStorage.setItem("ages", JSON.stringify(ages));
-    localStorage.setItem("qualOnly", qualOnly ? "1" : "0");
-    localStorage.setItem("win", String(windowDays()));
-    localStorage.setItem("dist", $("#maxDist").value);
-  } catch {}
-  const orgs = new Set([...document.querySelectorAll("[data-org]:checked")].map((c) => c.dataset.org));
-  $("#distOut").textContent = `up to ${maxDist} mi`;
-
-  const inRange = (d) => d != null && d <= maxDist;
-  const countOf = (e, div) => exactCount(e, div) ?? e.total_registered;
-  // Ages this event runs among the ones picked; it qualifies if any of them do.
-  const agesOf = (e) => ages.filter((a) => (e.divisions || []).includes(a));
-  const qualifies = (e) => agesOf(e).some((a) => countOf(e, a) >= minTeams);
-
-  // e.miles is computed from the chosen location; null when the event had no
-  // coordinates (couldn't be geocoded), which keeps it off the board.
-  const miles = (e) => e.miles;
-  syncChips();
-  const allOrgs = document.querySelectorAll("[data-org]").length;
-  $("#filterSummary").textContent = [
-    ages.length ? ages.join(", ") : "no ages",
-    `${maxDist} mi of ${loc.label}`,
-    `min ${minTeams}`,
-    days ? `next ${days === 30 ? "30 days" : days / 30 + " months"}` : "all dates",
-    orgs.size === allOrgs ? "all orgs" : `${orgs.size} of ${allOrgs} orgs`,
-  ].join(" · ");
-
-  currentFilters = {
-    label: loc.label, lat: loc.lat, lng: loc.lng,
-    miles: maxDist, ages, min: minTeams, orgs: [...orgs],
+function paintFreshness() {
+  const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
+  if (!latest) return;
+  const el = $("#fresh");
+  el.hidden = false;
+  el.title = new Date(latest).toLocaleString();
+  const show = () => {
+    const mins = Math.round((Date.now() - latest) / 60000);
+    const txt = mins < 2 ? "just now"
+      : mins < 60 ? `${mins} min ago`
+      : mins < 120 ? "1 hour ago"
+      : mins < 1440 ? `${Math.round(mins / 60)} hours ago`
+      : `${Math.round(mins / 1440)} days ago`;
+    // A scrape that hasn't landed in over a day means the counts on screen are
+    // no longer "checked twice daily", so say so rather than showing a green dot.
+    el.classList.toggle("stale", mins > 1440);
+    el.innerHTML = `<span class="full">Checked&nbsp;</span>${esc(mins > 1440 ? "Stale · " + txt : txt)}`;
   };
+  show();
+  setInterval(show, 60000);
+}
 
-  const ics = new URLSearchParams({ ages: ages.join(","), miles: String(maxDist), min: String(minTeams), orgs: [...orgs].join(",") });
-  if (loc && isFinite(loc.lat)) { ics.set("lat", loc.lat.toFixed(4)); ics.set("lng", loc.lng.toFixed(4)); }
-  $("#icsLink").href = `/calendar.ics?${ics}`;
+/* ---------------------------------------------------------------------------
+   Filtering
+   --------------------------------------------------------------------------- */
+function selectFor(f) {
+  const cutoff = f.win ? new Date(Date.now() + f.win * 86400e3).toISOString().slice(0, 10) : null;
+  const maxDist = DIST_STOPS[f.dist];
+  const orgs = new Set(f.orgs);
+  return events.filter((e) => {
+    if (!f.ages.some((a) => (e.divisions || []).includes(a))) return false;
+    if (!orgs.has(e.org)) return false;
+    if (e.miles == null || e.miles > maxDist) return false;
+    if (cutoff && (e.start_date || "") > cutoff) return false;
+    return true;
+  });
+}
+// Counting for the sheet's live "SHOW N EVENTS" button, which previews a draft
+// filter set without committing it.
+function countFor(f) {
+  const rows = selectFor(f);
+  if (!f.hideBelow) return rows.length;
+  return rows.filter((e) => f.ages.filter((a) => (e.divisions || []).includes(a)).some((a) => countOf(e, a) >= f.minTeams)).length;
+}
+function boardRows() {
+  const rows = selectFor(filters);
+  return filters.hideBelow ? rows.filter(qualifies) : rows;
+}
 
-  if (!ages.length) {
-    $("#tally").innerHTML = "";
-    $("#board").innerHTML = `<div class="empty"><b>Pick at least one age.</b><br>Tick 10U, 11U, 12U, 13U, or 14U above to see tournaments.</div>`;
+function summaryText(f) {
+  const winLabel = WINDOWS.find((w) => w.d === f.win)?.l.toLowerCase();
+  return [
+    f.ages.length ? f.ages.join(" + ") : "no ages",
+    `${DIST_STOPS[f.dist]} mi of ${loc.label}`,
+    `${f.minTeams}+ teams`,
+    f.win ? `next ${winLabel}` : "all dates",
+    f.orgs.length === ORGS.length ? null : `${f.orgs.length} of ${ORGS.length} orgs`,
+  ].filter(Boolean).join(" · ");
+}
+
+/* ---------------------------------------------------------------------------
+   Weekly history → sparkline.
+   The scraper writes one snapshot row per event per day. Six weekly points only
+   exist once an event has been tracked for six weeks, so this returns a short
+   series early in a season and the sparkline simply doesn't render.
+   --------------------------------------------------------------------------- */
+function history(id) {
+  if (historyCache.has(id)) return historyCache.get(id);
+  const job = db.from("registration_snapshots")
+    .select("snapshot_date, division_counts, teams_14u, total_registered")
+    .eq("event_id", id).order("snapshot_date")
+    .then((r) => r.data || [])
+    .catch(() => []);
+  historyCache.set(id, job);
+  return job;
+}
+const weekKey = (iso) => {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() - d.getDay());          // week starts Sunday
+  return d.toISOString().slice(0, 10);
+};
+function weeklySeries(rows, div) {
+  const byWeek = new Map();
+  for (const r of rows) byWeek.set(weekKey(r.snapshot_date), r);   // ordered, so last write per week wins
+  return [...byWeek.keys()].sort().slice(-6)
+    .map((w) => { const r = byWeek.get(w); return exactCount(r, div) ?? r.total_registered ?? 0; });
+}
+const SPARK_RAMP = ["#24405f", "#24405f", "#2e5580", "#3a6ba3", "#5f9fd4", "#8ec8ef"];
+function sparkHTML(series) {
+  if (series.length < 3) return "";                 // not enough weeks to show a trend
+  const max = Math.max(...series, 1);
+  const ramp = SPARK_RAMP.slice(-series.length);
+  return `<div class="spark">${series.map((v, i) =>
+    `<i style="height:${Math.max(2, Math.round((v / max) * 26))}px;background:${ramp[i]}"></i>`).join("")}</div>`;
+}
+// Fills a placeholder once the (bounded, per-event) history query resolves.
+async function paintSpark(el, id, div) {
+  if (!el) return;
+  const html = sparkHTML(weeklySeries(await history(id), div));
+  if (html && el.isConnected) el.outerHTML = html;
+}
+
+/* ---------------------------------------------------------------------------
+   Row / card pieces
+   --------------------------------------------------------------------------- */
+const orgCity = (e) => [e.org, e.city && `${e.city}${e.state && e.state !== "TX" ? ", " + e.state : ""}`].filter(Boolean).join(" · ");
+const isTurf = (e) => /\bturf\b/i.test(`${e.name} ${e.venue || ""}`);
+const whereText = (e) => [e.venue, e.city, e.state].filter(Boolean).join(", ");
+const mapsUrl = (e) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(whereText(e))}`;
+
+function metaLine(e) {
+  const wx = wxText(e);
+  return [orgCity(e), e.cost && esc(e.cost), wx].filter(Boolean).join(" · ");
+}
+
+function ageChips(e, primary) {
+  const chips = DIVISIONS.filter((d) => d !== primary && (e.divisions || []).includes(d)).map((d) => {
+    const c = exactCount(e, d);
+    const on = filters.ages.includes(d);
+    return `<span class="agechip${on ? " on" : ""}">${d}<b>${c == null ? "≈" : c}</b></span>`;
+  }).join("");
+  return chips ? `<div class="ages">${chips}</div>` : "";
+}
+
+function countBlock(e, div) {
+  if (!div) return "";
+  const approx = isApprox(e, div);
+  const n = countOf(e, div);
+  if (approx) {
+    // No division denominator exists, so never draw a fill bar against a total.
+    return `<div class="count"><span class="n approx">≈${n}</span><span class="u">all ages</span>
+      <div class="caveat">${e.org === "PAC" ? "PAC posts no split" : "no per-age split"}</div></div>`;
+  }
+  const delta = weekDelta(e, div);
+  const pct = Math.min(100, Math.round((n / FULL_BRACKET) * 100));
+  const under = n < filters.minTeams;
+  return `<div class="count"><span class="n">${n}</span><span class="u">${div} teams</span>
+    <div class="bar${under ? " mid" : ""}"><i style="width:${pct}%"></i></div>
+    ${under ? `<div class="caveat">below your ${filters.minTeams}-team floor</div>`
+            : delta > 0 ? `<div class="delta" style="font-size:12.5px">+${delta} this week</div>` : ""}</div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   Board
+   --------------------------------------------------------------------------- */
+function renderBoard() {
+  const wrap = $("#heroWrap"), board = $("#board");
+  if (!filters.ages.length) {
+    wrap.innerHTML = "";
+    board.innerHTML = `<div class="empty"><b>Pick at least one age.</b>Choose 10U–14U in the filters to see tournaments.
+      <div class="acts"><button class="btn out" type="button" data-fix="open">Open filters</button></div></div>`;
+    $("#more").hidden = true;
     return;
   }
-  const shown = events.filter((e) => agesOf(e).length && orgs.has(e.org) && inRange(miles(e)) && inWindow(e));
-  const qual = shown.filter(qualifies);
-  const label = listAges(ages);
-  $("#tally").innerHTML = shown.length
-    ? `<strong>${qual.length}</strong> qualifying of ${shown.length} ${label} event${shown.length === 1 ? "" : "s"} ${days ? `in the next ${days === 30 ? "30 days" : days / 30 + " months"}` : "upcoming"}, within ${maxDist} mi of ${esc(loc.label)}`
-    : "";
-
-  if (!shown.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No ${label} events in range.</b><br>Widen the distance or the date window, or wait for the next scrape — new tournaments post weekly.</div>`;
-    return;
-  }
-  const rows = qualOnly ? qual : shown;
+  const rows = boardRows();
   if (!rows.length) {
-    $("#board").innerHTML = `<div class="empty"><b>No qualifying ${label} events in range.</b><br>Lower the minimum team count, widen the distance, or turn off “Qualifying only”.</div>`;
+    wrap.innerHTML = "";
+    board.innerHTML = emptyBoardHTML();
+    $("#more").hidden = true;
     return;
   }
+
+  const best = bestBet(rows);
+  wrap.innerHTML = best ? heroHTML(best) : "";
+  if (best) paintSpark(wrap.querySelector("[data-spark]"), best.id, primaryAge(best));
 
   const page = rows.slice(0, visible);
   const rest = rows.length - page.length;
   $("#more").hidden = rest <= 0;
   if (rest > 0) $("#moreBtn").textContent = `Show ${Math.min(rest, PAGE)} more of ${rest}`;
 
+  // Month buckets carry their own "N open · N qualify" so the reader can skip a
+  // thin month without reading it.
+  const byMonth = new Map();
+  for (const e of rows) {
+    const d = fmtDay(e.start_date);
+    const k = `${d.month} ${d.year}`;
+    if (!byMonth.has(k)) byMonth.set(k, []);
+    byMonth.get(k).push(e);
+  }
   let html = "", lastMonth = "";
   for (const e of page) {
     const d = fmtDay(e.start_date);
-    const monthKey = `${d.month} ${d.year}`;
-    if (monthKey !== lastMonth) {
-      html += `${lastMonth ? "</div>" : ""}<h2 class="month">${monthKey}</h2><div class="month-group">`;
-      lastMonth = monthKey;
+    const k = `${d.month} ${d.year}`;
+    if (k !== lastMonth) {
+      const all = byMonth.get(k) || [];
+      const q = all.filter(qualifies).length;
+      html += `<div class="month">${esc(d.month)}<span class="rule"></span>
+        <span class="tally">${all.length} open · ${q} qualify</span></div>`;
+      lastMonth = k;
     }
-    const mine = agesOf(e);
-    const q = qualifies(e);
-    // No source publishes the playing surface, but organizers who have turf say
-    // so in the name, and that is exactly what matters when rain is forecast.
-    // Absence of the tag means unknown, never grass.
-    const turf = /\bturf\b/i.test(`${e.name} ${e.venue || ""}`);
-    // One count tier per selected age this event runs.
-    const tiers = mine
-      .map((a) => {
-        const exact = exactCount(e, a);
-        const n = exact ?? e.total_registered;
-        const delta = exact != null ? weekDelta(e.id, exact, a) : 0;
-        // A single age can hold several skill classes with very different
-        // numbers (10U Open 1, 10U AA 11); the age total alone would mislead.
-        const classes = e.class_counts?.[a] || {};
-        const names = Object.keys(classes);
-        const breakdown = names.length > 1
-          ? `<div class="classes">${names.sort((x, y) => classes[y] - classes[x]).map((c) => `${esc(c)} <b>${classes[c]}</b>`).join(" · ")}</div>`
-          : "";
-        return `<div class="tier${n >= minTeams ? " q" : ""}">
-          <div class="n">${n}</div>
-          <div class="lbl">${exact == null ? `<span class="approx">${a} ≈ all</span>` : `${a} teams`}</div>
-          ${breakdown}
-          ${delta > 0 ? `<div class="delta">+${delta} this wk</div>` : ""}
-        </div>`;
-      })
-      .join("");
-    // Other tracked ages this same tournament runs, with their counts.
-    const chips = DIVISIONS.filter((d2) => !mine.includes(d2) && (e.divisions || []).includes(d2))
-      .map((d2) => {
-        const c = exactCount(e, d2);
-        const hit = c != null && c >= minTeams;
-        return `<span class="age${hit ? " hit" : ""}">${d2}<b>${c == null ? "≈" : c}</b></span>`;
-      })
-      .join("");
-    // Leagues can run across months, where a bare "29–25" reads as nonsense.
-    // Same month keeps the compact range; otherwise spell the end out below.
-    const endF = e.end_date && e.end_date !== e.start_date ? fmtDay(e.end_date) : null;
-    const sameMonth = endF && endF.month === d.month && endF.year === d.year;
-    const endD = endF && sameMonth ? "–" + endF.day : "";
-    const thru = endF && !sameMonth ? `thru ${endF.month.slice(0, 3)} ${endF.day}` : "";
-    const where = [e.venue, e.city, e.state].filter(Boolean).join(", ");
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`;
-    const going = registered.has(e.id);
-    html += `<div class="game${q ? " qualifies" : ""}${going ? " going" : ""}">
-      <a class="rowlink" href="${e.event_url}" target="_blank" rel="noopener" aria-label="${esc(e.name)} — open registration page"></a>
-      <div class="when"><div class="day">${d.day}${endD}</div><div class="dow">${d.dow}</div>${thru ? `<div class="thru">${thru}</div>` : ""}</div>
-      <div class="what">
-        <div class="name">${esc(e.name)}</div>
-        <div class="where"><em>${e.org}</em> — ${esc(e.city || "")}${e.state && e.state !== "TX" ? ", " + e.state : ""}${e.cost ? " — " + esc(e.cost) : ""}${turf ? '<span class="turf" title="The organizer advertises turf, so it is likelier to play through rain">Turf</span>' : ""}</div>
-        ${chips ? `<div class="ages">${chips}</div>` : ""}
-        <button class="mark" type="button" data-mark="${e.id}" aria-pressed="${going}">${going ? "★ Registered" : "☆ Mark as registered"}</button>
-      </div>
-      <div class="dist"><b>${e.miles}</b> mi${where ? `<br><a class="dirs" href="${mapsUrl}" target="_blank" rel="noopener">Directions</a>` : ""}<div class="wx"${wxAttr(e)}></div></div>
-      <div class="count${mine.length > 1 ? " multi" : ""}">${tiers}</div>
-    </div>`;
+    html += rowHTML(e);
   }
-  $("#board").innerHTML = html + "</div>";
+  board.innerHTML = html;
   paintWeather();
 }
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// A fall league that runs Aug–Nov is not a "best bet this weekend", however
+// full its brackets are. Prefer a real tournament weekend — soonest first,
+// nearest among ties — and only fall back to long-running events if that is
+// genuinely all there is.
+const isWeekendEvent = (e) => daysBetween(e.start_date, e.end_date || e.start_date) <= WX_MAX_LEN;
+function bestBet(rows) {
+  const q = rows.filter(qualifies);
+  const bySoonestThenNearest = (a, b) =>
+    (a.start_date || "").localeCompare(b.start_date || "") || (a.miles ?? 1e9) - (b.miles ?? 1e9);
+  return q.filter(isWeekendEvent).sort(bySoonestThenNearest)[0] || q.sort(bySoonestThenNearest)[0];
+}
 
-// ---- My players: age eligibility per org + live NCS roster.
-// Season runs Aug 1 → Jul 31; "season year" is the year it ends in.
+function emptyBoardHTML() {
+  const d = DIST_STOPS[filters.dist];
+  const wider = DIST_STOPS.find((x) => x > d);
+  return `<div class="empty"><b>Nothing matches yet.</b>
+    No ${esc(filters.ages.join(" + "))} events within ${d} mi of ${esc(loc.label)}${filters.hideBelow ? ` with ${filters.minTeams}+ teams` : ""}.
+    <div class="acts">
+      ${wider ? `<button class="btn out" type="button" data-fix="wider">Widen to ${wider} mi</button>` : ""}
+      ${filters.minTeams > 0 ? `<button class="btn out" type="button" data-fix="floor">Drop the ${filters.minTeams}-team floor</button>` : ""}
+      ${filters.hideBelow ? `<button class="btn out" type="button" data-fix="show">Show events under the minimum</button>` : ""}
+      ${filters.win ? `<button class="btn out" type="button" data-fix="all">Look at all dates</button>` : ""}
+    </div></div>`;
+}
+
+function heroHTML(e) {
+  const div = primaryAge(e);
+  const r = dayRange(e);
+  const approx = isApprox(e, div);
+  const n = countOf(e, div);
+  const delta = weekDelta(e, div);
+  // A single age can hold several skill classes with very different numbers
+  // (14U AA 6, Open 3); the age total alone would mislead.
+  const classes = e.class_counts?.[div] || {};
+  const classNames = Object.keys(classes);
+  const classTag = classNames.length > 1
+    ? `<span class="tag">${div} ${classNames.sort((x, y) => classes[y] - classes[x]).map((c) => `${esc(c)} ${classes[c]}`).join(" · ")}</span>`
+    : DIVISIONS.filter((d) => (e.divisions || []).includes(d)).slice(0, 3).map((d) => {
+        const c = exactCount(e, d);
+        return `<span class="tag">${d} ${c == null ? "≈" : c}</span>`;
+      }).join("");
+  const tags = [isTurf(e) ? `<span class="tag turf">TURF</span>` : "", wxTag(e), classTag].filter(Boolean).join("");
+  const soon = daysUntil(e.start_date) <= 7;
+  return `<span class="eyebrow" style="display:block;margin-bottom:10px">${soon ? "Best bet this weekend" : "Best bet coming up"}</span>
+    <button class="hero" type="button" data-id="${esc(e.id)}">
+      <span class="date"><span class="mo">${r.a.mo}</span><span class="dd">${r.dd}</span><span class="dow">${r.dow}</span></span>
+      <span>
+        <span class="title">${esc(e.name)}</span>
+        <span class="meta" style="display:block">${metaLine(e)}${e.miles != null ? ` · ${e.miles} mi away` : ""}</span>
+        <span class="tags">${tags}</span>
+      </span>
+      <span class="right">
+        <span class="n">${approx ? "≈" : ""}${n}</span>
+        <span class="lbl" style="display:block">${approx ? "teams, all ages" : div + " teams in"}</span>
+        <span data-spark></span>
+        ${delta > 0 ? `<span class="delta" style="display:block">+${delta} this week</span>` : ""}
+      </span>
+    </button>`;
+}
+
+function rowHTML(e) {
+  const div = primaryAge(e);
+  const r = dayRange(e);
+  const under = !qualifies(e);
+  const mark = saved.get(e.id);
+  const flag = mark === "registered" ? `<span class="flag reg">★ REGISTERED</span>`
+    : mark === "watching" ? `<span class="flag watch">☆ WATCHING</span>` : "";
+  return `<button class="row${under ? " below" : ""}${selectedId === e.id ? " sel" : ""}" type="button" data-id="${esc(e.id)}">
+    <span class="when"><span class="dd">${r.dd}</span><span class="dow" style="display:block">${r.dow}</span></span>
+    <span>
+      <span class="name" style="display:block">${esc(e.name)}${flag}</span>
+      <span class="rowmeta">${metaLine(e)}</span>
+      ${ageChips(e, div)}
+    </span>
+    ${countBlock(e, div)}
+    <span class="dist">${e.miles != null ? e.miles + " mi" : ""}</span>
+  </button>`;
+}
+
+/* ---------------------------------------------------------------------------
+   Detail rail
+   --------------------------------------------------------------------------- */
+function renderDetail() {
+  const rail = $("#detail");
+  const rows = boardRows();
+  // The rail always shows something: fall back to the hero pick.
+  let e = events.find((x) => x.id === selectedId);
+  if (!e) e = rows.filter(qualifies)[0] || rows[0];
+  if (!e) { rail.innerHTML = ""; rail.dataset.open = "false"; return; }
+
+  const div = displayAge(e);
+  const mark = saved.get(e.id);
+  const counts = DIVISIONS.filter((d) => (e.divisions || []).includes(d))
+    .map((d) => ({ d, n: exactCount(e, d) })).filter((x) => x.n != null);
+  const max = Math.max(1, ...counts.map((x) => x.n));
+  const wx = wxText(e);
+
+  rail.innerHTML = `
+    <button class="btn out railclose" type="button" data-close="detail">Close</button>
+    <span class="eyebrow">Event detail</span>
+    <h2>${esc(e.name)}</h2>
+    <div class="sub">${dateLine(e)} · ${orgCity(e)}</div>
+    ${e.lat != null ? `<div class="map" id="railMap"></div>` : ""}
+    <div style="margin-top:12px">
+      <div class="spec"><span class="k">Entry</span><span class="v">${e.cost ? esc(e.cost) : "—"}</span></div>
+      <div class="spec"><span class="k">Surface</span><span class="v${isTurf(e) ? " turf" : ""}">${isTurf(e) ? "Turf" : "Not stated"}</span></div>
+      <div class="spec"><span class="k">Forecast</span><span class="v">${wx || "—"}</span></div>
+      <div class="spec"><span class="k">Distance</span><span class="v">${e.miles != null ? e.miles + " mi" : "—"}</span></div>
+    </div>
+    ${counts.length ? `<span class="eyebrow" style="display:block;margin:18px 0 6px">Brackets filling</span>
+      <div class="brackets">${counts.map((x) => `
+        <div class="brk${x.d === div ? " mine" : ""}">
+          <span class="lbl">${x.d}</span>
+          <span class="bar${x.d === div ? "" : " mid"}"><i style="width:${Math.round((x.n / max) * 100)}%"></i></span>
+          <span class="n">${x.n}</span>
+        </div>`).join("")}</div>` : ""}
+    <a class="btn" style="margin-top:18px" href="${esc(e.event_url || "#")}" target="_blank" rel="noopener">Open registration</a>
+    <div class="two-up">
+      <button class="btn out${mark ? " on" : ""}" type="button" data-save="${esc(e.id)}">${mark === "registered" ? "★ Registered" : mark === "watching" ? "☆ Watching" : "☆ Save"}</button>
+      <a class="btn out" href="${mapsUrl(e)}" target="_blank" rel="noopener">Directions</a>
+    </div>
+    <p class="alertnote">Tap Save again to cycle watching → registered → off.</p>`;
+  rail.dataset.open = String(detailOpen);
+  if (e.lat != null) miniMap($("#railMap"), e);
+}
+
+/* ---------------------------------------------------------------------------
+   Map. Leaflet is pulled in only when the Map view is first opened, so the
+   board — the screen people actually land on — never pays for it.
+   --------------------------------------------------------------------------- */
+// Plain OSM tiles, inverted in CSS to sit on the dark palette. Every hosted
+// dark style (CARTO, Mapbox, Stadia, MapTiler) now wants an API key, and this
+// keeps the site key-free. If traffic outgrows OSM's tile policy, swap this
+// URL for a keyed provider and drop the .leaflet-tile-pane filter.
+const TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+let leafletJob = null;
+function ensureLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (leafletJob) return leafletJob;
+  leafletJob = new Promise((res, rej) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+    document.head.appendChild(css);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+    s.onload = res;
+    s.onerror = () => rej(new Error("map failed to load"));
+    document.head.appendChild(s);
+  });
+  return leafletJob;
+}
+
+let bigMap = null, pinLayer = null;
+async function renderMap() {
+  const rows = boardRows();
+  const withCoords = rows.filter((e) => e.lat != null && e.lng != null);
+  const missing = rows.length - withCoords.length;
+  $("#mapStamp").textContent = mapStampText();
+  $("#mapNote").textContent = missing
+    ? `${missing} event${missing === 1 ? "" : "s"} without coordinates never make the map — they stay on the board.`
+    : "Events without coordinates never make the map — they stay on the board.";
+
+  $("#nearList").innerHTML = withCoords.slice().sort((a, b) => (a.miles ?? 1e9) - (b.miles ?? 1e9)).slice(0, 40)
+    .map((e) => {
+      const div = primaryAge(e);
+      const q = qualifies(e);
+      const star = saved.has(e.id) ? `<span class="star">★</span> ` : "";
+      return `<button class="nearrow${selectedId === e.id ? " sel" : ""}" type="button" data-id="${esc(e.id)}">
+        <span>
+          <span class="nm${q ? " q" : ""}" style="display:block">${star}${esc(e.name)}</span>
+          <span class="mt">${orgCity(e)} · ${dateLine(e)} · ${isApprox(e, div) ? "≈" : ""}${countOf(e, div)} teams</span>
+        </span>
+        <span class="d"><span class="n">${e.miles ?? "—"}</span><span class="u">mi</span></span>
+      </button>`;
+    }).join("") || `<p class="alertnote">No events with coordinates in range.</p>`;
+
+  try { await ensureLeaflet(); } catch { $("#mapCanvas").innerHTML = `<p class="alertnote" style="padding:16px">Map couldn't load. The board has the same events.</p>`; return; }
+  if (!bigMap) {
+    bigMap = L.map("mapCanvas", { scrollWheelZoom: false, attributionControl: true });
+    L.tileLayer(TILES, { attribution: TILE_ATTR, maxZoom: 18 }).addTo(bigMap);
+    pinLayer = L.layerGroup().addTo(bigMap);
+  }
+  pinLayer.clearLayers();
+  const pts = [];
+  for (const e of withCoords) {
+    const q = qualifies(e);
+    const color = saved.has(e.id) ? "#5fd08a" : q ? "#8ec8ef" : "#3a6ba3";
+    // "Pins by date" sizes the soonest events largest; "by fill" sizes by how
+    // full the bracket is. Same set either way, different question.
+    const div = primaryAge(e);
+    const r = pinMode === "date"
+      ? Math.max(4, 11 - Math.min(7, Math.floor(Math.max(0, daysUntil(e.start_date)) / 14)))
+      : Math.max(4, Math.min(11, 4 + Math.round((countOf(e, div) / FULL_BRACKET) * 7)));
+    const m = L.circleMarker([e.lat, e.lng], { radius: r, color, weight: 1.5, fillColor: color, fillOpacity: .45 });
+    m.on("click", () => { selectedId = e.id; render(); });
+    m.bindTooltip(`${e.name} — ${countOf(e, div)} ${isApprox(e, div) ? "all ages" : div}`, { direction: "top" });
+    m.addTo(pinLayer);
+    pts.push([e.lat, e.lng]);
+  }
+  pts.push([loc.lat, loc.lng]);
+  L.circleMarker([loc.lat, loc.lng], { radius: 5, color: "#e8eef6", weight: 2, fillOpacity: 1, fillColor: "#e8eef6" })
+    .bindTooltip(loc.label, { direction: "top" }).addTo(pinLayer);
+  bigMap.fitBounds(L.latLngBounds(pts).pad(.12));
+  setTimeout(() => bigMap.invalidateSize(), 0);
+}
+function mapStampText() {
+  const start = new Date();
+  const end = filters.win ? new Date(Date.now() + filters.win * 86400e3) : null;
+  const f = (d) => `${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+  return end ? `${f(start)} – ${f(end)}, ${end.getFullYear()}` : `${f(start)}, ${start.getFullYear()} – all dates`;
+}
+async function miniMap(el, e) {
+  if (!el) return;
+  try { await ensureLeaflet(); } catch { return; }
+  if (!el.isConnected) return;
+  const m = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, keyboard: false })
+    .setView([e.lat, e.lng], 10);
+  L.tileLayer(TILES, { maxZoom: 18 }).addTo(m);
+  L.circleMarker([e.lat, e.lng], { radius: 7, color: "#8ec8ef", weight: 2, fillColor: "#8ec8ef", fillOpacity: .5 }).addTo(m);
+  setTimeout(() => m.invalidateSize(), 0);
+}
+
+/* ---------------------------------------------------------------------------
+   Saved & registered
+   --------------------------------------------------------------------------- */
+const parseCost = (s) => { const m = String(s || "").match(/\$\s?([\d,]+)/); return m ? +m[1].replace(/,/g, "") : null; };
+
+function renderSaved() {
+  const main = $("#savedMain"), side = $("#savedSide");
+  const mine = events.filter((e) => saved.has(e.id));
+  const reg = mine.filter((e) => saved.get(e.id) === "registered").sort((a, b) => (a.start_date || "").localeCompare(b.start_date || ""));
+  const watch = mine.filter((e) => saved.get(e.id) === "watching").sort((a, b) => (a.start_date || "").localeCompare(b.start_date || ""));
+
+  if (!mine.length) {
+    main.innerHTML = `<div class="empty"><b>Nothing saved yet.</b>
+      Tap a tournament on the board, then Save. Saved events stay on this device.
+      <div class="acts"><button class="btn out" type="button" data-go="board">Back to the board</button></div></div>`;
+  } else {
+    main.innerHTML =
+      (reg.length ? `<div class="divider">Registered · ${reg.length}<span class="rule"></span></div>${reg.map((e) => savedCard(e, true)).join("")}` : "") +
+      (watch.length ? `<div class="divider" style="margin-top:24px">Watching · ${watch.length}<span class="rule"></span></div>${watch.map((e) => savedCard(e, false)).join("")}` : "");
+    for (const e of watch) paintSpark(main.querySelector(`[data-spark="${CSS.escape(e.id)}"]`), e.id, primaryAge(e));
+  }
+
+  // Season totals. Entry fees are only published by some orgs, so the money
+  // line says what it actually counted rather than implying a full total.
+  const fees = reg.map((e) => parseCost(e.cost)).filter((x) => x != null);
+  const feeTotal = fees.reduce((a, b) => a + b, 0);
+  const milesTotal = Math.round(reg.reduce((a, e) => a + (e.miles || 0) * 2, 0));
+  const weekendsInWindow = filters.win ? Math.max(1, Math.round(filters.win / 7)) : null;
+
+  side.innerHTML = `
+    <div class="sidecard">
+      <h3>Your season</h3>
+      <div class="spec"><span class="k">Entry fees${fees.length < reg.length ? ` (${fees.length} of ${reg.length} published)` : ""}</span><span class="v">${fees.length ? "$" + feeTotal.toLocaleString() : "—"}</span></div>
+      <div class="spec"><span class="k">Weekends booked</span><span class="v">${reg.length}${weekendsInWindow ? " of " + weekendsInWindow : ""}</span></div>
+      <div class="spec" style="border:0"><span class="k">Miles driven</span><span class="v">${milesTotal ? milesTotal + " round trip" : "—"}</span></div>
+    </div>
+    <div class="sidecard">
+      <h3>Keep this list in your calendar</h3>
+      <p>One subscription link. Events matching your current search appear as all-day entries and update themselves as brackets change.</p>
+      <a class="btn" id="icsLink" href="#">Subscribe</a>
+    </div>
+    <div class="sidecard">
+      <h3>Email me new matches</h3>
+      <p>Only tournaments new to this search. Confirmation first, one-tap unsubscribe.</p>
+      <form id="alertForm">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="email" id="alertEmail" required placeholder="you@example.com" autocomplete="email" maxlength="120" style="flex:1 1 160px">
+          <select id="alertFreq" aria-label="How often"><option value="weekly">Weekly</option><option value="daily">Daily</option></select>
+        </div>
+        <button class="btn" type="submit" style="margin-top:10px">Sign up</button>
+        <p class="alertnote" id="alertNote"></p>
+      </form>
+    </div>`;
+  $("#icsLink").href = icsHref();
+  wireAlerts();
+}
+
+function savedCard(e, registered) {
+  const div = displayAge(e);
+  const days = daysUntil(e.start_date);
+  const delta = weekDelta(e, div);
+  const floorHit = countOf(e, div) >= filters.minTeams;
+  return `<div class="savecard${registered ? " reg" : ""}">
+    <div>
+      ${registered ? `<div class="cd">${days <= 0 ? "Happening now" : `In ${days} day${days === 1 ? "" : "s"}`}</div>` : ""}
+      <h3>${esc(e.name)}</h3>
+      <div class="mt">${dateLine(e)} · ${orgCity(e)}${e.miles != null ? ` · ${e.miles} mi` : ""}${isTurf(e) ? " · turf" : ""}</div>
+      ${!registered && floorHit ? `<div class="milestone">Clears your ${filters.minTeams}-team floor — ${countOf(e, div)} in now</div>` : ""}
+      <div class="acts">
+        <a class="btn out" href="${mapsUrl(e)}" target="_blank" rel="noopener">Directions</a>
+        <a class="btn out" href="${esc(e.event_url || "#")}" target="_blank" rel="noopener">Registration</a>
+        ${registered
+          ? `<button class="btn out drop" type="button" data-unsave="${esc(e.id)}">Not going</button>`
+          : `<button class="btn out" type="button" data-promote="${esc(e.id)}">Mark registered</button>`}
+      </div>
+    </div>
+    <div class="right">
+      ${registered
+        ? `<div class="n">${isApprox(e, div) ? "≈" : ""}${countOf(e, div)}</div>
+           <div class="lbl">${isApprox(e, div) ? "teams" : div + " teams"}</div>
+           ${delta > 0 ? `<div class="delta" style="font-size:13px">+${delta} this week</div>` : ""}`
+        : `<span data-spark="${esc(e.id)}"></span>
+           <div class="lbl">${isApprox(e, div) ? "≈" : ""}${countOf(e, div)} in</div>`}
+    </div>
+  </div>`;
+}
+
+function icsHref() {
+  const p = new URLSearchParams({
+    ages: filters.ages.join(","), miles: String(DIST_STOPS[filters.dist]),
+    min: String(filters.minTeams), orgs: filters.orgs.join(","),
+  });
+  if (isFinite(loc.lat)) { p.set("lat", loc.lat.toFixed(4)); p.set("lng", loc.lng.toFixed(4)); }
+  return `/calendar.ics?${p}`;
+}
+
+function wireAlerts() {
+  const form = $("#alertForm");
+  if (!form) return;
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const note = $("#alertNote"), email = $("#alertEmail").value.trim();
+    const btn = form.querySelector("button[type=submit]");
+    btn.disabled = true;
+    note.className = "alertnote";
+    note.textContent = "Signing you up…";
+    const { error } = await db.rpc("request_alerts", {
+      p_email: email, p_filters: currentFilters, p_frequency: $("#alertFreq").value,
+    });
+    btn.disabled = false;
+    if (error) {
+      note.className = "alertnote err";
+      note.textContent = /invalid email/i.test(error.message) ? "That address doesn't look right." : `Couldn't sign you up. ${error.message}`;
+      return;
+    }
+    note.className = "alertnote ok";
+    note.textContent = `Check ${email} for a confirmation link. Nothing is sent until you tap it.`;
+    $("#alertEmail").value = "";
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   My players
+   --------------------------------------------------------------------------- */
 const seasonEnd = (() => { const n = new Date(); return n.getMonth() >= 7 ? n.getFullYear() + 1 : n.getFullYear(); })();
 const ageOn = (dob, y, m, d) => {
   const b = new Date(dob + "T12:00:00"), at = new Date(y, m - 1, d, 12);
@@ -776,19 +1450,18 @@ const ageOn = (dob, y, m, d) => {
   if (at < new Date(at.getFullYear(), b.getMonth(), b.getDate(), 12)) a -= 1;
   return a;
 };
-// Each org's rule for the division a birthdate lands in this season.
 const ORG_RULES = [
-  { org: "NCS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `age on Apr 30, ${seasonEnd} (May 1 cutoff)` },
-  { org: "PPS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `May 1 cutoff, same as NCS; up to 2 grade exceptions per team` },
-  { org: "PAC", div: (dob) => ageOn(dob, seasonEnd - 1, 12, 31), rule: `age before Jan 1, ${seasonEnd} (season Aug 1–Jul 31)` },
+  { org: "NCS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `age on Apr 30, ${seasonEnd}` },
+  { org: "PPS", div: (dob) => ageOn(dob, seasonEnd, 4, 30), rule: `May 1 cutoff` },
+  { org: "PAC", div: (dob) => ageOn(dob, seasonEnd - 1, 12, 31), rule: `age before Jan 1, ${seasonEnd}` },
 ];
-const ageNow = (dob) => { const n = new Date(); const y = ageOn(dob, n.getFullYear(), n.getMonth() + 1, n.getDate()); const b = new Date(dob + "T12:00:00"); const m = ((n.getMonth() - b.getMonth()) + 12 + (n.getDate() < b.getDate() ? -1 : 0)) % 12; return `${y}y ${m}m`; };
-
-let players = [];
-try { players = JSON.parse(localStorage.getItem("players") || "[]"); } catch {}
-const savePlayers = () => { try { localStorage.setItem("players", JSON.stringify(players)); } catch {} };
+const ageNow = (dob) => {
+  const n = new Date(), y = ageOn(dob, n.getFullYear(), n.getMonth() + 1, n.getDate());
+  const b = new Date(dob + "T12:00:00");
+  const m = ((n.getMonth() - b.getMonth()) + 12 + (n.getDate() < b.getDate() ? -1 : 0)) % 12;
+  return `${y}y ${m}m`;
+};
 const ncsCache = new Map();
-
 async function ncsLookup(p) {
   const key = p.ncsId ? `id:${p.ncsId}` : `name:${p.first}|${p.last}`;
   if (ncsCache.has(key)) return ncsCache.get(key);
@@ -799,27 +1472,32 @@ async function ncsLookup(p) {
 }
 
 function renderPlayers() {
-  $("#playerCount").textContent = players.length ? `(${players.length})` : "";
-  const ages = selectedAges();
-  $("#playerList").innerHTML = players.map((p) => {
+  const list = $("#playerList");
+  list.innerHTML = players.map((p) => {
     const elig = ORG_RULES.map(({ org, div, rule }) => {
       const d = `${div(p.dob)}U`;
-      return `<span><span class="org">${org}</span> <button type="button" data-setage="${d}" class="${ages.includes(d) ? "on" : ""}" title="Show ${d} tournaments">${d}</button> <small>${rule}</small></span>`;
+      return `<span class="grp"><span class="org">${org}</span>
+        <button type="button" class="divbtn${filters.ages.includes(d) ? " on" : ""}" data-setage="${d}">${d}</button>
+        <small>${rule}</small></span>`;
     }).join("");
-    return `<div class="player" data-id="${p.id}">
-      <div class="head"><span class="pname">${esc(p.first)} ${esc(p.last)}</span><span class="page">${ageNow(p.dob)} · born ${new Date(p.dob + "T12:00:00").toLocaleDateString()}</span>
-        <button type="button" class="btn ghost remove" data-remove="${p.id}">Remove</button></div>
+    return `<div class="pcard" id="pc-${esc(p.id)}">
+      <div class="head">
+        <span class="pname">${esc(p.first)} ${esc(p.last)}</span>
+        <span class="page">${ageNow(p.dob)} · born ${new Date(p.dob + "T12:00:00").toLocaleDateString()}</span>
+        <button class="rm" type="button" data-remove="${esc(p.id)}">Remove</button>
+      </div>
       <div class="elig">${elig}</div>
-      <div class="roster" id="roster-${p.id}">Looking up NCS roster…</div>
+      <div class="roster" id="roster-${esc(p.id)}">Looking up NCS roster…</div>
     </div>`;
-  }).join("") || `<p class="hint">No players yet. Add a name and birthdate to see which age group they land in for each org.</p>`;
+  }).join("") || `<div class="empty"><b>No players yet.</b>Add a name and birthdate to see which age group they land in for each org — the cutoffs differ, so one birthdate can be two ages.</div>`;
 
   for (const p of players) {
-    const box = $(`#roster-${p.id}`);
+    const box = document.getElementById(`roster-${p.id}`);
+    const card = document.getElementById(`pc-${p.id}`);
     const eligible = ORG_RULES[0].div(p.dob);
     ncsLookup(p).then((r) => {
-      if (!box.isConnected) return;
-      if (r.error) { box.innerHTML = `NCS lookup failed: ${esc(r.error)}`; return; }
+      if (!box || !box.isConnected) return;
+      if (r.error) { box.textContent = `NCS lookup failed: ${r.error}`; return; }
       if (r.roster) {
         const active = r.roster.filter((x) => /active/i.test(x.status));
         const rows = (active.length ? active : r.roster.slice(0, 1)).map((x) => {
@@ -828,163 +1506,286 @@ function renderPlayers() {
           return `<b>${esc(x.team)}</b> (${esc(x.city)}) — ${esc(x.division)}, ${esc(x.season)} · ${esc(x.status)}${up}`;
         });
         box.innerHTML = rows.length ? `NCS roster: ${rows.join("<br>")}` : "On NCS, but no roster history yet.";
+        card?.classList.add("matched");
         return;
       }
       const m = r.matches || [];
       if (!m.length) { box.textContent = "Not found on NCS player search (Texas)."; return; }
-      box.innerHTML = `Several NCS players match — pick one:<ul class="pick">${m.map((x) => `<li><button type="button" class="btn ghost" data-pick="${p.id}:${x.id}">${esc(x.name)} · ${esc(x.state)} · ${esc(x.age)}</button></li>`).join("")}</ul>`;
+      box.innerHTML = `Several NCS players match — pick one:<ul class="pick">${m.map((x) =>
+        `<li><button type="button" data-pick="${esc(p.id)}:${esc(x.id)}">${esc(x.name)} · ${esc(x.state)} · ${esc(x.age)}</button></li>`).join("")}</ul>`;
     });
   }
 }
 
-$("#addPlayer").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const f = new FormData(e.target);
+/* ---------------------------------------------------------------------------
+   Weather. Open-Meteo: free, no key, 16 days ahead. Only short events inside
+   that window get a line — a league running to November has no meaningful
+   "chance of rain". Batched by location and cached for the session.
+   --------------------------------------------------------------------------- */
+const WX_DAYS = 16, WX_MAX_LEN = 4;
+const wxCache = new Map();
+try { for (const [k, v] of JSON.parse(sessionStorage.getItem("wx") || "[]")) wxCache.set(k, v); } catch {}
+const wxKey = (lat, lng) => `${(+lat).toFixed(2)},${(+lng).toFixed(2)}`;
+// A 16-day forecast covers today plus the next 15, so the last day we can speak
+// to is WX_DAYS - 1 out.
+const wxHorizon = () => new Date(Date.now() + (WX_DAYS - 1) * 86400e3).toISOString().slice(0, 10);
+const daysBetween = (a, b) => Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400e3);
+
+function wxEligible(e) {
+  if (e.lat == null || e.lng == null || !e.start_date) return null;
+  if (e.start_date > wxHorizon() || e.start_date < new Date().toISOString().slice(0, 10)) return null;
+  const end = e.end_date || e.start_date;
+  if (daysBetween(e.start_date, end) > WX_MAX_LEN) return null;
+  return { key: wxKey(e.lat, e.lng), start: e.start_date, end };
+}
+// Reads whatever is already cached. Rows render immediately with no weather and
+// get a repaint once the fetch lands, so the board never waits on Open-Meteo.
+function wxRead(e) {
+  const el = wxEligible(e);
+  if (!el) return null;
+  const d = wxCache.get(el.key);
+  if (!d) return null;
+  let precip = null, high = null, storm = false;
+  for (let i = 0; i < d.t.length; i++) {
+    if (d.t[i] < el.start || d.t[i] > el.end) continue;
+    if (d.p[i] != null) precip = Math.max(precip ?? 0, d.p[i]);
+    if (d.h[i] != null) high = Math.max(high ?? -999, d.h[i]);
+    if (d.c[i] >= 95) storm = true;   // WMO 95-99 is thunderstorm
+  }
+  if (precip == null && high == null) return null;
+  return { precip, high, storm };
+}
+function wxText(e) {
+  const w = wxRead(e);
+  if (!w) return "";
+  return [w.storm ? "Storms" : null, w.precip != null ? `${w.precip}% rain` : null, w.high != null ? `${Math.round(w.high)}°` : null].filter(Boolean).join(" · ");
+}
+function wxTag(e) {
+  const w = wxRead(e);
+  if (!w) return "";
+  return `<span class="tag wx${w.storm ? " storm" : w.precip >= 50 ? " wet" : ""}">${esc(wxText(e))}</span>`;
+}
+let wxPainting = false;
+async function paintWeather() {
+  if (wxPainting) return;
+  const rows = boardRows();
+  const need = [...new Set(rows.map(wxEligible).filter(Boolean).map((x) => x.key))].filter((k) => !wxCache.has(k)).slice(0, 60);
+  if (!need.length) return;
+  wxPainting = true;
+  const q = new URLSearchParams({
+    latitude: need.map((k) => k.split(",")[0]).join(","),
+    longitude: need.map((k) => k.split(",")[1]).join(","),
+    daily: "precipitation_probability_max,temperature_2m_max,weather_code",
+    forecast_days: String(WX_DAYS), timezone: "auto", temperature_unit: "fahrenheit",
+  });
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+    if (r.ok) {
+      const json = await r.json();
+      const arr = Array.isArray(json) ? json : [json];
+      need.forEach((k, i) => {
+        const d = arr[i]?.daily;
+        if (d) wxCache.set(k, { t: d.time, p: d.precipitation_probability_max, h: d.temperature_2m_max, c: d.weather_code });
+      });
+      try { sessionStorage.setItem("wx", JSON.stringify([...wxCache])); } catch {}
+      wxPainting = false;
+      render();                       // repaint now that the forecasts are in
+      return;
+    }
+  } catch { /* weather is a bonus; never break the board over it */ }
+  wxPainting = false;
+}
+
+/* ---------------------------------------------------------------------------
+   Render dispatch
+   --------------------------------------------------------------------------- */
+function render() {
+  store.set("ages", filters.ages);
+  store.set("dist", filters.dist);
+  store.set("win", filters.win);
+  store.set("minTeams", filters.minTeams);
+  store.set("hideBelow", filters.hideBelow);
+  store.set("orgs", filters.orgs);
+
+  $("#summary").textContent = summaryText(filters);
+  currentFilters = {
+    label: loc.label, lat: loc.lat, lng: loc.lng,
+    miles: DIST_STOPS[filters.dist], ages: filters.ages, min: filters.minTeams, orgs: filters.orgs,
+  };
+  const savedCount = [...saved.keys()].filter((id) => events.some((e) => e.id === id)).length;
+  $("#navSaved").textContent = savedCount || "";
+  $("#navPlayers").textContent = players.length || "";
+  $("#tabSaved").textContent = savedCount ? `Saved ${savedCount}` : "Saved";
+  for (const b of $$("nav.views button, .tabbar button")) b.setAttribute("aria-current", String(b.dataset.view === view));
+
+  $("#viewBoard").hidden = view !== "board";
+  $("#viewMap").hidden = view !== "map";
+  $("#viewSaved").hidden = view !== "saved";
+  $("#viewPlayers").hidden = view !== "players";
+
+  if (view === "board") { renderBoard(); renderDetail(); }
+  else if (view === "map") renderMap();
+  else if (view === "saved") renderSaved();
+  else if (view === "players") renderPlayers();
+}
+function setView(v) {
+  view = v;
+  visible = PAGE;
+  detailOpen = false;
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+/* ---------------------------------------------------------------------------
+   Filter sheet. Edits a draft so the primary button can preview the result
+   count before anything on the board moves.
+   --------------------------------------------------------------------------- */
+let draft = null;
+const sheet = $("#sheet");
+
+function openSheet() {
+  draft = JSON.parse(JSON.stringify(filters));
+  paintSheet();
+  sheet.showModal();
+}
+function paintSheet() {
+  $("#fAges").innerHTML = DIVISIONS.map((d) =>
+    `<button class="chip${draft.ages.includes(d) ? " on" : ""}" type="button" data-age="${d}">${d}</button>`).join("");
+  $("#fWhen").innerHTML = WINDOWS.map((w) =>
+    `<button class="chip${draft.win === w.d ? " on" : ""}" type="button" data-win="${w.d}">${w.l}</button>`).join("");
+  $("#fOrgs").innerHTML = ORGS.map((o) =>
+    `<button class="chip${draft.orgs.includes(o.id) ? " on" : ""}" type="button" data-org="${o.id}" title="${esc(o.title)}">${o.id}</button>`).join("");
+  $("#fOrgsLbl").textContent = draft.orgs.length === ORGS.length ? `Orgs · all ${ORGS.length} on` : `Orgs · ${draft.orgs.length} of ${ORGS.length}`;
+  $("#fLoc").value = loc.label;
+  $("#fDist").value = draft.dist;
+  $("#fDist").style.setProperty("--fill", `${(draft.dist / (DIST_STOPS.length - 1)) * 100}%`);
+  $("#fDistVal").textContent = `${DIST_STOPS[draft.dist]} mi`;
+  $("#fMinVal").textContent = draft.minTeams;
+  $("#fHide").setAttribute("aria-pressed", String(draft.hideBelow));
+  $("#fHideLbl").textContent = draft.hideBelow ? "On" : "Off";
+  const n = countFor(draft);
+  $("#fApply").textContent = `Show ${n} event${n === 1 ? "" : "s"}`;
+}
+
+sheet.addEventListener("click", (ev) => {
+  const t = ev.target.closest("button");
+  if (!t || !draft) return;
+  if (t.dataset.age) {
+    const d = t.dataset.age;
+    draft.ages = draft.ages.includes(d) ? draft.ages.filter((x) => x !== d) : [...draft.ages, d].sort((a, b) => DIVISIONS.indexOf(a) - DIVISIONS.indexOf(b));
+    paintSheet();
+  } else if (t.dataset.win !== undefined && t.dataset.win !== "") {
+    draft.win = +t.dataset.win; paintSheet();
+  } else if (t.dataset.org) {
+    const o = t.dataset.org;
+    draft.orgs = draft.orgs.includes(o) ? draft.orgs.filter((x) => x !== o) : [...draft.orgs, o];
+    paintSheet();
+  }
+});
+$("#fDist").addEventListener("input", (ev) => { draft.dist = +ev.target.value; paintSheet(); });
+$("#fMinUp").addEventListener("click", () => { draft.minTeams = Math.min(30, draft.minTeams + 1); paintSheet(); });
+$("#fMinDown").addEventListener("click", () => { draft.minTeams = Math.max(0, draft.minTeams - 1); paintSheet(); });
+$("#fHide").addEventListener("click", () => { draft.hideBelow = !draft.hideBelow; paintSheet(); });
+$("#fReset").addEventListener("click", () => { draft = JSON.parse(JSON.stringify(DEFAULTS)); paintSheet(); });
+$("#fApply").addEventListener("click", () => { filters = draft; visible = PAGE; sheet.close(); render(); });
+$("#sheetClose").addEventListener("click", () => sheet.close());
+$("#changeBtn").addEventListener("click", openSheet);
+
+$("#fLocSet").addEventListener("click", async () => {
+  const q = $("#fLoc").value.trim(), out = $("#fLocOut");
+  if (!q) return;
+  out.className = "alertnote";
+  out.textContent = "Looking up…";
+  try {
+    loc = await geocode(q);
+    store.set("loc", loc);
+    applyLoc();
+    out.className = "alertnote ok";
+    out.textContent = loc.label;
+    paintSheet();
+  } catch (err) {
+    out.className = "alertnote err";
+    out.textContent = err.message;
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   Events
+   --------------------------------------------------------------------------- */
+function cycleSave(id) {
+  const cur = saved.get(id);
+  if (!cur) saved.set(id, "watching");
+  else if (cur === "watching") saved.set(id, "registered");
+  else saved.delete(id);
+  persistSaved();
+  render();
+}
+
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("button, a");
+  if (!t) return;
+  if (t.dataset.view) return setView(t.dataset.view);
+  if (t.dataset.go) return setView(t.dataset.go);
+  if (t.dataset.close === "detail") { detailOpen = false; $("#detail").dataset.open = "false"; return; }
+  if (t.dataset.save) { ev.preventDefault(); return cycleSave(t.dataset.save); }
+  if (t.dataset.unsave) { saved.delete(t.dataset.unsave); persistSaved(); return render(); }
+  if (t.dataset.promote) { saved.set(t.dataset.promote, "registered"); persistSaved(); return render(); }
+  if (t.dataset.remove) { players = players.filter((p) => p.id !== t.dataset.remove); savePlayers(); return render(); }
+  if (t.dataset.setage) { filters.ages = [t.dataset.setage]; setView("board"); return; }
+  if (t.dataset.pick) {
+    const [pid, ncsId] = t.dataset.pick.split(":");
+    const p = players.find((x) => x.id === pid);
+    if (p) { p.ncsId = ncsId; savePlayers(); render(); }
+    return;
+  }
+  if (t.dataset.pins) { pinMode = t.dataset.pins; $$("[data-pins]").forEach((b) => b.classList.toggle("on", b === t)); return renderMap(); }
+  if (t.dataset.fix) {
+    const f = t.dataset.fix;
+    if (f === "wider") filters.dist = Math.min(DIST_STOPS.length - 1, filters.dist + 1);
+    else if (f === "floor") filters.minTeams = 0;
+    else if (f === "show") filters.hideBelow = false;
+    else if (f === "all") filters.win = 0;
+    else if (f === "open") return openSheet();
+    return render();
+  }
+  // A row or hero card: load it into the detail rail.
+  const card = t.closest("[data-id]");
+  if (card) { selectedId = card.dataset.id; detailOpen = true; if (view === "map") render(); else setViewDetail(); }
+});
+function setViewDetail() {
+  render();
+  if (window.innerWidth <= 1100) $("#detail").scrollIntoView({ block: "nearest" });
+}
+
+$("#moreBtn").addEventListener("click", () => {
+  const y = window.scrollY;
+  visible += PAGE;
+  render();
+  window.scrollTo({ top: y });
+});
+
+$("#addPlayer").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
   const first = String(f.get("first") || "").trim(), last = String(f.get("last") || "").trim(), dob = String(f.get("dob") || "");
   if (!first || !last || !dob) return;
   players.push({ id: Date.now().toString(36), first, last, dob });
   savePlayers();
-  e.target.reset();
-  renderPlayers();
-});
-$("#playerList").addEventListener("click", (e) => {
-  const t = e.target.closest("button");
-  if (!t) return;
-  if (t.dataset.remove) { players = players.filter((p) => p.id !== t.dataset.remove); savePlayers(); renderPlayers(); }
-  else if (t.dataset.setage) { for (const cb of document.querySelectorAll("[data-age]")) cb.checked = cb.dataset.age === t.dataset.setage; render(); }
-  else if (t.dataset.pick) { const [pid, ncsId] = t.dataset.pick.split(":"); const p = players.find((x) => x.id === pid); if (p) { p.ncsId = ncsId; savePlayers(); renderPlayers(); } }
-});
-$("#players").open = players.length > 0 && wideScreen();
-renderPlayers();
-
-// ---- Email alerts. Double opt-in: the signup only creates a pending row and
-// the confirmation link arrives by email, so nobody can sign up someone else.
-$("#alertToggle").addEventListener("click", (e) => {
-  e.preventDefault();
-  const form = $("#alertForm");
-  form.hidden = !form.hidden;
-  if (!form.hidden) $("#alertEmail").focus();
-});
-$("#alertForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const note = $("#alertNote");
-  const email = $("#alertEmail").value.trim();
-  const btn = e.target.querySelector("button");
-  btn.disabled = true;
-  note.className = "alertnote";
-  note.textContent = "Signing you up…";
-  const { error } = await db.rpc("request_alerts", {
-    p_email: email,
-    p_filters: currentFilters,
-    p_frequency: $("#alertFreq").value,
-  });
-  btn.disabled = false;
-  if (error) {
-    note.className = "alertnote err";
-    note.textContent = /invalid email/i.test(error.message)
-      ? "That address doesn't look right."
-      : `Couldn't sign you up. ${error.message}`;
-    return;
-  }
-  note.className = "alertnote ok";
-  note.textContent = `Check ${email} for a confirmation link. Nothing is sent until you tap it.`;
-  $("#alertEmail").value = "";
+  ev.target.reset();
+  render();
 });
 
-// ---- Filters panel: open on desktop, collapsed on phones so the board is
-// immediately visible. The summary has to carry enough state to be useful
-// while closed.
-const wideScreen = () => (window.innerWidth || 1024) >= 700;
-$("#filters").open = wideScreen();
-matchMedia("(min-width: 700px)").addEventListener?.("change", (e) => { $("#filters").open = e.matches; });
-
-function syncChips() {
-  for (const cb of document.querySelectorAll(".chip input")) {
-    cb.closest(".chip").classList.toggle("on", cb.checked);
-  }
-}
-
-// ---- Weather. Open-Meteo: free, no key, 16 days ahead. Only events inside
-// that window get a line, and only short ones — a league running to November
-// has no meaningful "chance of rain". Batched by location and cached for the
-// session so changing a filter doesn't refetch.
-const WX_DAYS = 16;
-const WX_MAX_LEN = 4;   // days; longer than a weekend and it's a league
-const wxCache = new Map();
-try { for (const [k, v] of JSON.parse(sessionStorage.getItem("wx") || "[]")) wxCache.set(k, v); } catch {}
-const wxKey = (lat, lng) => `${(+lat).toFixed(2)},${(+lng).toFixed(2)}`;
-// A 16-day forecast covers today plus the next 15, so the last day we can
-// speak to is WX_DAYS - 1 out. Using WX_DAYS here left events on the boundary
-// asking for a day the forecast doesn't reach.
-const wxHorizon = () => new Date(Date.now() + (WX_DAYS - 1) * 86400e3).toISOString().slice(0, 10);
-const daysBetween = (a, b) => Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400e3);
-
-function wxAttr(e) {
-  if (e.lat == null || e.lng == null || !e.start_date) return "";
-  if (e.start_date > wxHorizon() || e.start_date < new Date().toISOString().slice(0, 10)) return "";
-  const end = e.end_date || e.start_date;
-  if (daysBetween(e.start_date, end) > WX_MAX_LEN) return "";
-  return ` data-wx="${wxKey(e.lat, e.lng)}|${e.start_date}|${end}"`;
-}
-
-async function paintWeather() {
-  const nodes = [...document.querySelectorAll(".wx[data-wx]")];
-  if (!nodes.length) return;
-  const need = [...new Set(nodes.map((n) => n.dataset.wx.split("|")[0]))].filter((k) => !wxCache.has(k)).slice(0, 60);
-  if (need.length) {
-    const q = new URLSearchParams({
-      latitude: need.map((k) => k.split(",")[0]).join(","),
-      longitude: need.map((k) => k.split(",")[1]).join(","),
-      daily: "precipitation_probability_max,temperature_2m_max,weather_code",
-      forecast_days: String(WX_DAYS),
-      timezone: "auto",
-      temperature_unit: "fahrenheit",
-    });
-    try {
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
-      if (r.ok) {
-        const json = await r.json();
-        const arr = Array.isArray(json) ? json : [json];
-        need.forEach((k, i) => {
-          const d = arr[i]?.daily;
-          if (d) wxCache.set(k, { t: d.time, p: d.precipitation_probability_max, h: d.temperature_2m_max, c: d.weather_code });
-        });
-        try { sessionStorage.setItem("wx", JSON.stringify([...wxCache])); } catch {}
-      }
-    } catch { /* weather is a bonus; never break the board over it */ }
-  }
-  for (const n of nodes) {
-    const [key, start, end] = n.dataset.wx.split("|");
-    const d = wxCache.get(key);
-    if (!d) continue;
-    let precip = null, high = null, storm = false;
-    for (let i = 0; i < d.t.length; i++) {
-      if (d.t[i] < start || d.t[i] > end) continue;
-      if (d.p[i] != null) precip = Math.max(precip ?? 0, d.p[i]);
-      if (d.h[i] != null) high = Math.max(high ?? -999, d.h[i]);
-      if (d.c[i] >= 95) storm = true;   // WMO 95-99 is thunderstorm
-    }
-    // Nothing usable for these dates: clear the marker so it isn't retried.
-    n.removeAttribute("data-wx");
-    if (precip == null && high == null) continue;
-    n.className = "wx" + (storm ? " storm" : precip >= 50 ? " wet" : "");
-    n.textContent = [storm ? "Storms" : null, precip != null ? `${precip}% rain` : null, high != null ? `${Math.round(high)}°` : null]
-      .filter(Boolean).join(" · ");
-  }
-}
-
-// ---- Share. Native sheet where the browser has one (phones, Safari),
-// clipboard copy everywhere else. A dismissed sheet is not an error.
+/* ---------------------------------------------------------------------------
+   Share
+   --------------------------------------------------------------------------- */
 (function share() {
-  const btn = $("#shareBtn"), label = $("#shareLabel");
+  const btn = $("#shareBtn");
   const flash = (msg) => {
-    label.textContent = msg;
-    btn.classList.add("done");
-    clearTimeout(btn._resetTimer);
-    btn._resetTimer = setTimeout(() => { label.textContent = "Share"; btn.classList.remove("done"); }, 1800);
+    const was = btn.textContent;
+    btn.textContent = msg;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.textContent = was; }, 1800);
   };
-  // Some embedded/older browsers reject the async clipboard even with a real
-  // click, so fall back to the legacy selection copy before giving up.
   const legacyCopy = (text) => {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -1000,95 +1801,23 @@ async function paintWeather() {
   };
   const copy = async (url) => {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-        return flash("Link copied");
-      }
-    } catch { /* fall through */ }
-    flash(legacyCopy(url) ? "Link copied" : "Copy failed");
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); return flash("Copied"); }
+    } catch {}
+    flash(legacyCopy(url) ? "Copied" : "Copy failed");
   };
   btn.addEventListener("click", async () => {
     const url = location.origin + location.pathname;
     if (!navigator.share) return copy(url);
     try {
-      await navigator.share({
-        title: "Baseball Time in TX",
-        text: "10U–14U tournaments with open brackets near you, checked twice daily.",
-        url,
-      });
+      await navigator.share({ title: "Baseball Time in TX", text: "10U–14U tournaments with open brackets near you, checked twice daily.", url });
     } catch (err) {
-      if (err && err.name === "AbortError") return; // user closed the sheet
+      if (err?.name === "AbortError") return;
       copy(url);
     }
   });
 })();
 
-// ---- Install-to-home-screen prompt.
-// Android/desktop Chrome fire beforeinstallprompt, so we can offer a real
-// Install button. iOS never does, so we show the Share → Add to Home Screen
-// steps instead. Shows once per device: never inside the installed app
-// (standalone), and never again after it has been shown or dismissed.
-(function installPrompt() {
-  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  let seen = false;
-  try { seen = localStorage.getItem("installSeen") === "1"; } catch {}
-  if (standalone || seen) return;
-  const box = $("#install"), btn = $("#installBtn"), steps = $("#installSteps");
-  const markSeen = () => { try { localStorage.setItem("installSeen", "1"); } catch {} };
-  const show = () => { box.hidden = false; markSeen(); };
-  const hide = () => { box.hidden = true; markSeen(); };
-  $("#installClose").addEventListener("click", hide);
-  // If the page becomes an installed app mid-session, drop the banner.
-  matchMedia("(display-mode: standalone)").addEventListener?.("change", (e) => { if (e.matches) hide(); });
-
-  const ua = navigator.userAgent;
-  const iOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (iOS) {
-    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
-    steps.innerHTML = isSafari
-      ? `Tap <kbd>Share</kbd> ⎙ then <kbd>Add to Home Screen</kbd>.`
-      : `Open this page in <kbd>Safari</kbd>, tap <kbd>Share</kbd> ⎙, then <kbd>Add to Home Screen</kbd>.`;
-    setTimeout(show, 2500);
-    return;
-  }
-  let deferred = null;
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferred = e;
-    steps.textContent = "Works like an app, opens full screen.";
-    btn.hidden = false;
-    show();
-  });
-  btn.addEventListener("click", async () => {
-    if (!deferred) return;
-    deferred.prompt();
-    await deferred.userChoice;
-    deferred = null;
-    hide();
-  });
-  window.addEventListener("appinstalled", hide);
-})();
-
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-
-function rerender() { visible = PAGE; render(); }
-for (const el of ["#maxDist", "#qualOnly", "#minTeams"].map($)) el.addEventListener("input", rerender);
-for (const el of document.querySelectorAll("[data-org], [data-age], [data-win]")) el.addEventListener("input", rerender);
-$("#board").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-mark]");
-  if (!btn) return;
-  e.preventDefault();
-  const id = btn.dataset.mark;
-  if (registered.has(id)) registered.delete(id); else registered.add(id);
-  saveRegistered();
-  render();
-});
-$("#moreBtn").addEventListener("click", () => {
-  const y = window.scrollY;
-  visible += PAGE;
-  render();
-  window.scrollTo({ top: y }); // keep the reader where they were
-});
 load();
 </script>
 </body>
