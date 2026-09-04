@@ -123,9 +123,11 @@
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
   .filterbar .eyebrow { flex: none; }
+  .sumbox { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .sumbox .pill { flex: none; }
   .summary {
     font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: .02em;
-    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   nav.views { margin-left: auto; display: flex; gap: 20px; align-items: center; }
   nav.views button {
@@ -191,12 +193,32 @@
   .month .rule { flex: 1; height: 1px; background: var(--border); }
   .month .tally { font-family: var(--ui); font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--text-4); text-transform: none; }
 
+  /* The row is a div, not a button, so the star can be a real control inside
+     it. A stretched overlay button carries the "open this event" click. */
   .row {
-    display: grid; grid-template-columns: 64px 1fr 132px 96px; gap: 18px; align-items: center;
+    position: relative;
+    display: grid; grid-template-columns: 64px 1fr 132px 116px; gap: 18px; align-items: center;
     padding: 15px 4px; border-bottom: 1px solid var(--border-row);
-    width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0;
-    font: inherit; color: inherit; cursor: pointer;
   }
+  .rowopen { position: absolute; inset: 0; z-index: 1; background: none; border: 0; cursor: pointer; padding: 0; }
+  .rowopen:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .distwrap { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+  /* Watching and registered are one control cycling none → watching →
+     registered, so the glyph and colour have to carry the state on their own. */
+  .star {
+    position: relative; z-index: 2; flex: none;
+    width: 32px; height: 32px; border-radius: 999px; padding: 0;
+    background: transparent; border: 1px solid var(--border); color: var(--text-4);
+    font-size: 15px; line-height: 1; cursor: pointer;
+    display: grid; place-items: center;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  /* Keeps a 44px touch target without a 44px circle. */
+  .star::after { content: ""; position: absolute; inset: -6px; }
+  .star:hover { border-color: var(--accent); color: var(--accent); }
+  .star[data-state="watching"] { color: var(--accent); border-color: var(--accent); }
+  .star[data-state="registered"] { color: var(--success); border-color: var(--success); background: rgba(26, 122, 77, .18); }
   .row:hover { background: rgba(142, 200, 239, .04); }
   .row.below { opacity: .55; }
   .row.sel { background: rgba(142, 200, 239, .07); }
@@ -290,16 +312,23 @@
   .maplegend span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-3); }
   .maplegend i { width: 11px; height: 11px; border-radius: 50%; display: block; }
   .mapmodes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-header) !important; color: var(--text) !important;
+    border: 1px solid var(--border-strong); box-shadow: 0 8px 28px rgba(0, 0, 0, .5) !important;
+  }
+  .leaflet-popup-content { margin: 12px 14px !important; font-family: var(--ui); }
+  .pinpop b { font-family: var(--cond); font-size: 18px; font-weight: 700; display: block; line-height: 1.15; }
+  .pinpop .mt { display: block; font-size: 13px; color: var(--text-3); margin-top: 2px; }
+  .pinpop .acts { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .pinpop .acts a { color: var(--accent) !important; font-size: 13px; font-weight: 700; }
   .nearrow {
+    position: relative;
     display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
-    padding: 11px 8px; border-bottom: 1px solid var(--border-row); width: 100%;
-    background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; color: inherit;
-    cursor: pointer; text-align: left;
+    padding: 11px 8px; border-bottom: 1px solid var(--border-row);
   }
   .nearrow:hover, .nearrow.sel { background: rgba(142, 200, 239, .04); }
   .nearrow .nm { font-family: var(--cond); font-size: 19px; font-weight: 600; line-height: 1.15; }
   .nearrow .nm.q { color: var(--accent); }
-  .nearrow .nm .star { color: var(--success); }
   .nearrow .mt { font-size: 13.5px; color: var(--text-3); }
   .nearrow .d { text-align: right; }
   .nearrow .d .n { font-family: var(--cond); font-size: 19px; font-weight: 800; }
@@ -482,7 +511,6 @@
     }
     .filterbar .eyebrow { display: none; }
     .filterbar .sumbox {
-      display: flex; align-items: center; gap: 10px;
       background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px;
     }
     .summary { font-size: 16px; }
@@ -500,7 +528,8 @@
     .hero .spark { margin: 0; }
 
     .row { grid-template-columns: 48px 1fr auto; gap: 4px 12px; padding: 13px 2px; }
-    .row .dist { grid-column: 2; grid-row: 2; text-align: left; font-size: 13.5px; }
+    .row .distwrap { grid-column: 2; grid-row: 2; justify-content: flex-start; gap: 12px; }
+    .row .dist { text-align: left; font-size: 13.5px; }
     .row .count { grid-column: 3; grid-row: 1 / span 2; text-align: right; min-width: 92px; }
     .row .bar { margin-left: auto; width: 80px; }
     .row .when .dd { font-size: 22px; }
@@ -1162,7 +1191,8 @@ function rowHTML(e) {
   const mark = saved.get(e.id);
   const flag = mark === "registered" ? `<span class="flag reg">★ REGISTERED</span>`
     : mark === "watching" ? `<span class="flag watch">☆ WATCHING</span>` : "";
-  return `<button class="row${under ? " below" : ""}${selectedId === e.id ? " sel" : ""}" type="button" data-id="${esc(e.id)}">
+  return `<div class="row${under ? " below" : ""}${selectedId === e.id ? " sel" : ""}">
+    <button class="rowopen" type="button" data-id="${esc(e.id)}" aria-label="Open ${esc(e.name)}"></button>
     <span class="when"><span class="dd">${r.dd}</span><span class="dow" style="display:block">${r.dow}</span></span>
     <span>
       <span class="name" style="display:block">${esc(e.name)}${flag}</span>
@@ -1170,8 +1200,22 @@ function rowHTML(e) {
       ${ageChips(e, div)}
     </span>
     ${countBlock(e, div)}
-    <span class="dist">${e.miles != null ? e.miles + " mi" : ""}</span>
-  </button>`;
+    <span class="distwrap">
+      <span class="dist">${e.miles != null ? e.miles + " mi" : ""}</span>
+      ${starHTML(e)}
+    </span>
+  </div>`;
+}
+
+// One control, three states. The label spells out what the next tap does,
+// since a star alone can't say "registered".
+function starHTML(e) {
+  const s = saved.get(e.id) || "none";
+  const label = s === "registered" ? "Registered — tap to remove"
+    : s === "watching" ? "Watching — tap to mark registered"
+    : "Save this tournament";
+  return `<button class="star" type="button" data-save="${esc(e.id)}" data-state="${s}"
+    aria-pressed="${s !== "none"}" aria-label="${label}" title="${label}">${s === "none" ? "☆" : "★"}</button>`;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1182,7 +1226,7 @@ function renderDetail() {
   const rows = boardRows();
   // The rail always shows something: fall back to the hero pick.
   let e = events.find((x) => x.id === selectedId);
-  if (!e) e = rows.filter(qualifies)[0] || rows[0];
+  if (!e) e = bestBet(rows) || rows[0];
   if (!e) { rail.innerHTML = ""; rail.dataset.open = "false"; return; }
 
   const div = displayAge(e);
@@ -1249,7 +1293,7 @@ function ensureLeaflet() {
   return leafletJob;
 }
 
-let bigMap = null, pinLayer = null;
+let bigMap = null, pinLayer = null, mapFitSig = "";
 async function renderMap() {
   const rows = boardRows();
   const withCoords = rows.filter((e) => e.lat != null && e.lng != null);
@@ -1263,14 +1307,17 @@ async function renderMap() {
     .map((e) => {
       const div = primaryAge(e);
       const q = qualifies(e);
-      const star = saved.has(e.id) ? `<span class="star">★</span> ` : "";
-      return `<button class="nearrow${selectedId === e.id ? " sel" : ""}" type="button" data-id="${esc(e.id)}">
+      return `<div class="nearrow${selectedId === e.id ? " sel" : ""}">
+        <button class="rowopen" type="button" data-id="${esc(e.id)}" aria-label="Show ${esc(e.name)} on the map"></button>
         <span>
-          <span class="nm${q ? " q" : ""}" style="display:block">${star}${esc(e.name)}</span>
+          <span class="nm${q ? " q" : ""}" style="display:block">${esc(e.name)}</span>
           <span class="mt">${orgCity(e)} · ${dateLine(e)} · ${isApprox(e, div) ? "≈" : ""}${countOf(e, div)} teams</span>
         </span>
-        <span class="d"><span class="n">${e.miles ?? "—"}</span><span class="u">mi</span></span>
-      </button>`;
+        <span class="distwrap">
+          <span class="d"><span class="n">${e.miles ?? "—"}</span><span class="u">mi</span></span>
+          ${starHTML(e)}
+        </span>
+      </div>`;
     }).join("") || `<p class="alertnote">No events with coordinates in range.</p>`;
 
   try { await ensureLeaflet(); } catch { $("#mapCanvas").innerHTML = `<p class="alertnote" style="padding:16px">Map couldn't load. The board has the same events.</p>`; return; }
@@ -1291,15 +1338,30 @@ async function renderMap() {
       ? Math.max(4, 11 - Math.min(7, Math.floor(Math.max(0, daysUntil(e.start_date)) / 14)))
       : Math.max(4, Math.min(11, 4 + Math.round((countOf(e, div) / FULL_BRACKET) * 7)));
     const m = L.circleMarker([e.lat, e.lng], { radius: r, color, weight: 1.5, fillColor: color, fillOpacity: .45 });
-    m.on("click", () => { selectedId = e.id; render(); });
+    m.on("click", () => { selectedId = e.id; });
     m.bindTooltip(`${e.name} — ${countOf(e, div)} ${isApprox(e, div) ? "all ages" : div}`, { direction: "top" });
+    // The popup is the only place to save from the map, so it carries the star
+    // as well as the link out. Clicks reach the delegated handler on document.
+    m.bindPopup(`<div class="pinpop">
+      <b>${esc(e.name)}</b>
+      <span class="mt">${orgCity(e)} · ${dateLine(e)}${e.miles != null ? ` · ${e.miles} mi` : ""}</span>
+      <span class="mt">${isApprox(e, div) ? "≈" : ""}${countOf(e, div)} ${isApprox(e, div) ? "teams, all ages" : div + " teams"}</span>
+      <span class="acts">${starHTML(e)}
+        <a href="${esc(e.event_url || "#")}" target="_blank" rel="noopener">Registration</a></span>
+    </div>`, { closeButton: true, autoPan: true });
     m.addTo(pinLayer);
     pts.push([e.lat, e.lng]);
   }
   pts.push([loc.lat, loc.lng]);
   L.circleMarker([loc.lat, loc.lng], { radius: 5, color: "#e8eef6", weight: 2, fillOpacity: 1, fillColor: "#e8eef6" })
     .bindTooltip(loc.label, { direction: "top" }).addTo(pinLayer);
-  bigMap.fitBounds(L.latLngBounds(pts).pad(.12));
+  // Only re-frame when the result set itself changes. Saving an event re-renders
+  // the pins, and refitting there would throw away the reader's pan and zoom.
+  const sig = withCoords.map((e) => e.id).join(",");
+  if (sig !== mapFitSig) {
+    mapFitSig = sig;
+    if (pts.length) bigMap.fitBounds(L.latLngBounds(pts).pad(.12));
+  }
   setTimeout(() => bigMap.invalidateSize(), 0);
 }
 function mapStampText() {
