@@ -62,6 +62,48 @@ Colours that JavaScript resolves rather than CSS — map pins, the sparkline ram
 the tile filter — are declared as custom properties and read with `cssVar()`, so
 each theme has exactly one definition.
 
+## Two domains
+
+The same deployment answers on both `youthbaseballtime.com` (national) and
+`youthbaseballtimeintx.com` (Texas and Oklahoma). Both must be aliased to this
+Vercel project for any of the below to work.
+
+They serve identical data, so for search they have to differ in everything
+else or Google will treat one as a duplicate of the other and index only one.
+The `SITES` map at the top of the app script is the whole difference: brand,
+title, description, `h1`, Open Graph image, structured-data `areaServed`, geo
+meta, and the starting radius (150 mi national, 80 mi Texas). Add a domain by
+adding an entry.
+
+- **Canonical URLs come from the site's own `host` field, never
+  `location.hostname`** — otherwise a preview deploy canonicalises to itself and
+  can get indexed in place of the real site. The static `<link rel="canonical"
+  href="/">` is relative so each domain self-canonicalises even before scripts
+  run; `applySEO()` then makes it absolute.
+- **`?site=tx` forces a brand** on localhost or a `vercel.app` preview, where
+  the real hostname isn't available to switch on.
+- **`robots.txt`, `sitemap.xml` and `/app.webmanifest` are generated per
+  request** by `api/seo.js` from the `Host` header, because a static file can
+  only name one domain. The manifest moved off `manifest.webmanifest` so no
+  static file shadows the rewrite. `<lastmod>` reports the newest scrape, not
+  the deploy.
+- **Structured data**: `Organization`, `WebSite` and `WebPage` ship in the
+  markup (Bing and social scrapers run JavaScript poorly) and are rewritten per
+  host; every listed tournament is emitted as a `SportsEvent` in an `ItemList`,
+  which is the part search engines can turn into a rich result. Entry-fee
+  `offers` are omitted rather than guessed when an organizer doesn't publish one.
+- **Open Graph images** live at `site/og.png` and `site/og-tx.png`, 1200×630.
+  They were drawn on a canvas and saved through the dev server's `/save`
+  endpoint; re-run that snippet if the branding changes.
+
+**The national domain is ahead of the data.** Coverage today is 578 Texas and
+46 Oklahoma events against a dozen everywhere else, so national queries will
+land on a board with nothing in range until the scraper widens. Perfect Game
+already downloads the whole national grid and throws away everything outside
+`states`, so unfiltering it is close to free; USSSA needs its full state→ID map
+in `scraper/src/usssa.js`; the rest (PAC, PPS, 24 Sports, RBI, Five Tool) are
+regional operators that will stay Texas-heavy whatever we do.
+
 ### Design decisions worth knowing
 
 - **Map tiles** are plain OpenStreetMap, inverted and desaturated in CSS to sit

@@ -4,15 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#080d15">
-<meta name="description" content="10U–14U baseball tournaments with open brackets near Sanger, TX.">
+<!-- The static head carries the national brand. site.js swaps the copy, the
+     canonical URL and the structured data per hostname; the canonical below is
+     relative on purpose, so each domain self-canonicalises with no JS. -->
+<title>Youth Baseball Tournaments Near You — Open Brackets, Live Team Counts | Baseball Time</title>
+<meta name="description" content="Find 10U–14U select baseball tournaments with open brackets. Live team counts per age division from nine tournament organizers, rechecked twice a day.">
+<link rel="canonical" href="/">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="author" content="Baseball Time">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="dark light">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Baseball Time">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Youth Baseball Tournaments Near You — Open Brackets, Live Team Counts">
+<meta property="og:description" content="Find 10U–14U select baseball tournaments with open brackets. Live team counts per age division, rechecked twice a day.">
+<meta property="og:url" content="https://youthbaseballtime.com/">
+<meta property="og:image" content="https://youthbaseballtime.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Baseball Time — youth baseball tournaments with open brackets and live team counts.">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Youth Baseball Tournaments Near You — Open Brackets, Live Team Counts">
+<meta name="twitter:description" content="Find 10U–14U select baseball tournaments with open brackets. Live team counts per age division, rechecked twice a day.">
+<meta name="twitter:image" content="https://youthbaseballtime.com/og.png">
+<meta name="twitter:image:alt" content="Baseball Time — youth baseball tournaments with open brackets and live team counts.">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Baseball Time">
-<title>Baseball Time in TX</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="/app.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<!-- Baseline structured data. Bing and the social scrapers are weak at running
+     JavaScript, so the national version ships in the markup and site config
+     rewrites it for the Texas domain. -->
+<script type="application/ld+json" id="ldEvents">{"@context":"https://schema.org","@type":"ItemList","itemListElement":[]}</script>
+<script type="application/ld+json" id="ldSite">{"@context":"https://schema.org","@graph":[
+  {"@type":"Organization","@id":"https://youthbaseballtime.com/#org","name":"Baseball Time","url":"https://youthbaseballtime.com/","logo":"https://youthbaseballtime.com/icon-512.png","email":"info@youthbaseballtime.com"},
+  {"@type":"WebSite","@id":"https://youthbaseballtime.com/#site","name":"Baseball Time","url":"https://youthbaseballtime.com/","publisher":{"@id":"https://youthbaseballtime.com/#org"},"inLanguage":"en-US"}
+]}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow+Semi+Condensed:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -160,6 +196,12 @@
   }
   .num { font-family: var(--cond); font-variant-numeric: tabular-nums; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .noscript {
+    max-width: 620px; margin: 40px auto; padding: 0 22px; color: var(--text-2);
+  }
+  .noscript h2 { font-family: var(--cond); font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 8px; }
+  .noscript a { color: var(--accent); }
 
   /* ---------------- Masthead ---------------- */
   header.masthead {
@@ -726,6 +768,14 @@
 </head>
 <body>
 
+<noscript>
+  <div class="noscript">
+    <h2>Baseball Time needs JavaScript</h2>
+    <p>This board lists 10U&ndash;14U select baseball tournaments with open brackets &mdash; live team counts per age division from nine tournament organizers, rechecked twice a day. Turn JavaScript on to load it, or email
+    <a href="mailto:info@youthbaseballtime.com">info@youthbaseballtime.com</a> and I will send the weekend's list.</p>
+  </div>
+</noscript>
+
 <header class="masthead">
   <img class="logo" src="icon-192.png" alt="" width="34" height="34">
   <h1>Baseball <span>Time</span></h1>
@@ -926,8 +976,60 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const PAGE = (window.innerWidth || 1024) <= 760 ? 25 : 40;
 
-const DEFAULT_LOC = { label: "Sanger, TX", lat: 33.3632, lng: -97.1739 };
-const DEFAULTS = { ages: ["14U"], dist: 9, win: 90, minTeams: 3, hideBelow: false, orgs: ORGS.map((o) => o.id) };
+/* ---------------------------------------------------------------------------
+   Two domains, one app. They are not carbon copies for search purposes: each
+   gets its own title, description, structured data and starting radius, so
+   Google has a reason to index both instead of folding one into the other.
+   Anything not listed here is shared, including all of the data.
+   --------------------------------------------------------------------------- */
+const SANGER = { label: "Sanger, TX", lat: 33.3632, lng: -97.1739 };
+const SITES = {
+  "youthbaseballtime.com": {
+    key: "national",
+    host: "youthbaseballtime.com",
+    brand: "Baseball Time",
+    tagline: "Select baseball tournaments, tracked twice a day",
+    title: "Youth Baseball Tournaments Near You — Open Brackets, Live Team Counts | Baseball Time",
+    description: "Find 10U–14U select baseball tournaments with open brackets. Live team counts per age division from nine tournament organizers, rechecked twice a day.",
+    heading: "Youth baseball tournaments with open brackets",
+    scope: "nationwide",
+    areaServed: [{ "@type": "Country", name: "United States" }],
+    origin: SANGER,
+    dist: 12,           // 150 mi — a wider default suits a visitor who isn't local
+    og: "og.png",
+    geo: null,
+  },
+  "youthbaseballtimeintx.com": {
+    key: "tx",
+    host: "youthbaseballtimeintx.com",
+    brand: "Baseball Time in TX",
+    tagline: "North Texas select baseball, tracked twice a day",
+    title: "Youth Baseball Tournaments in Texas & Oklahoma — Open Brackets | Baseball Time in TX",
+    description: "Find 10U–14U select baseball tournaments with open brackets across North Texas and Oklahoma. Live team counts per age division, rechecked twice a day.",
+    heading: "North Texas youth baseball tournaments with open brackets",
+    scope: "across Texas and Oklahoma",
+    areaServed: [
+      { "@type": "State", name: "Texas" },
+      { "@type": "State", name: "Oklahoma" },
+    ],
+    origin: SANGER,
+    dist: 9,            // 80 mi
+    og: "og-tx.png",
+    geo: { region: "US-TX", placename: "Sanger, Texas", position: "33.3632;-97.1739", icbm: "33.3632, -97.1739" },
+  },
+};
+// ?site=tx previews a brand from a localhost or vercel.app URL, where the real
+// hostname isn't available to switch on.
+const FORCED = new URLSearchParams(location.search).get("site");
+const SITE = Object.values(SITES).find((s) => s.key === FORCED)
+  || SITES[location.hostname.replace(/^www\./, "")]
+  || SITES["youthbaseballtime.com"];
+// Deliberately the brand's own domain, never location.hostname: a preview
+// deploy must not canonicalise to itself and get indexed instead of the site.
+const SITE_URL = `https://${SITE.host}`;
+
+const DEFAULT_LOC = SITE.origin;
+const DEFAULTS = { ages: ["14U"], dist: SITE.dist, win: 90, minTeams: 3, hideBelow: false, orgs: ORGS.map((o) => o.id) };
 
 /* ---------------------------------------------------------------------------
    State. Everything here is device-local: filters, players and saved events are
@@ -1316,6 +1418,7 @@ function renderBoard() {
     html += rowHTML(e);
   }
   board.innerHTML = html;
+  renderEventLD(rows);
   paintWeather();
 }
 
@@ -1860,6 +1963,101 @@ async function paintWeather() {
 }
 
 /* ---------------------------------------------------------------------------
+   SEO. Google renders JavaScript, so per-host copy and structured data applied
+   here are indexed; the static head still carries a complete national version
+   for the crawlers and social scrapers that do not run scripts.
+   --------------------------------------------------------------------------- */
+function setMeta(sel, attr, content) {
+  let el = document.head.querySelector(sel);
+  if (!el) {
+    el = document.createElement("meta");
+    const [, kind, key] = sel.match(/\[(name|property)="(.+)"\]/) || [];
+    if (kind) el.setAttribute(kind, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute(attr, content);
+}
+
+function applySEO() {
+  const url = `${SITE_URL}/`;
+  document.title = SITE.title;
+  document.querySelector('link[rel="canonical"]').href = url;
+  setMeta('meta[name="description"]', "content", SITE.description);
+  setMeta('meta[property="og:title"]', "content", SITE.title);
+  setMeta('meta[property="og:description"]', "content", SITE.description);
+  setMeta('meta[property="og:site_name"]', "content", SITE.brand);
+  setMeta('meta[property="og:url"]', "content", url);
+  setMeta('meta[property="og:image"]', "content", `${SITE_URL}/${SITE.og}`);
+  setMeta('meta[name="twitter:title"]', "content", SITE.title);
+  setMeta('meta[name="twitter:description"]', "content", SITE.description);
+  setMeta('meta[name="twitter:image"]', "content", `${SITE_URL}/${SITE.og}`);
+  setMeta('meta[name="apple-mobile-web-app-title"]', "content", SITE.brand);
+  // Regional signals only make sense on the regional domain.
+  if (SITE.geo) {
+    setMeta('meta[name="geo.region"]', "content", SITE.geo.region);
+    setMeta('meta[name="geo.placename"]', "content", SITE.geo.placename);
+    setMeta('meta[name="geo.position"]', "content", SITE.geo.position);
+    setMeta('meta[name="ICBM"]', "content", SITE.geo.icbm);
+  }
+  // The wordmark is the h1; the hidden half gives it the words a search result
+  // needs, and gives a screen reader the same context a sighted reader gets
+  // from the board underneath it.
+  const h1 = document.querySelector(".masthead h1");
+  h1.innerHTML = `Baseball <span>Time</span>${SITE.key === "tx" ? " in TX" : ""}<span class="sr"> — ${esc(SITE.heading)}</span>`;
+
+  const org = { "@type": "Organization", "@id": `${url}#org`, name: SITE.brand, url, logo: `${SITE_URL}/icon-512.png`, email: "info@youthbaseballtime.com", areaServed: SITE.areaServed };
+  document.getElementById("ldSite").textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      org,
+      { "@type": "WebSite", "@id": `${url}#site`, name: SITE.brand, url, description: SITE.description, publisher: { "@id": `${url}#org` }, inLanguage: "en-US" },
+      { "@type": "WebPage", "@id": url, url, name: SITE.title, description: SITE.description, isPartOf: { "@id": `${url}#site` }, about: { "@type": "Thing", name: "Youth select baseball tournaments" } },
+    ],
+  });
+}
+
+// One SportsEvent per listed tournament. This is the part search engines can
+// actually turn into a rich result, and every field below comes from the
+// scrape — nothing is invented to satisfy the schema.
+function renderEventLD(rows) {
+  const el = document.getElementById("ldEvents");
+  const items = rows.slice(0, 40).map((e) => {
+    const place = {
+      "@type": "Place",
+      name: e.venue || [e.city, e.state].filter(Boolean).join(", ") || "Venue to be announced",
+      address: { "@type": "PostalAddress", addressLocality: e.city || undefined, addressRegion: e.state || undefined, addressCountry: "US" },
+    };
+    if (e.lat != null && e.lng != null) place.geo = { "@type": "GeoCoordinates", latitude: e.lat, longitude: e.lng };
+    const price = parseCost(e.cost);
+    return {
+      "@type": "SportsEvent",
+      name: e.name,
+      sport: "Baseball",
+      startDate: e.start_date || undefined,
+      endDate: e.end_date || e.start_date || undefined,
+      eventStatus: "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+      url: e.event_url || undefined,
+      location: place,
+      organizer: { "@type": "Organization", name: e.org },
+      // Entry fees are only published by some organizers, so the offer is
+      // omitted rather than guessed at when there isn't one.
+      offers: price == null ? undefined : {
+        "@type": "Offer", price, priceCurrency: "USD", url: e.event_url || undefined,
+        availability: "https://schema.org/InStock", category: "Team entry fee",
+      },
+    };
+  });
+  el.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Youth baseball tournaments ${SITE.scope}`,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, i) => ({ "@type": "ListItem", position: i + 1, item })),
+  });
+}
+
+/* ---------------------------------------------------------------------------
    Render dispatch
    --------------------------------------------------------------------------- */
 function render() {
@@ -2171,6 +2369,8 @@ $("#addPlayer").addEventListener("submit", (ev) => {
   addEventListener("resize", sync);
   sync();
 })();
+
+applySEO();
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 load();

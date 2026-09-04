@@ -3,6 +3,9 @@
   "rewrites": [
     { "source": "/calendar.ics", "destination": "/api/calendar" },
     { "source": "/confirm", "destination": "/api/alerts?action=confirm" },
-    { "source": "/unsubscribe", "destination": "/api/alerts?action=unsubscribe" }
+    { "source": "/unsubscribe", "destination": "/api/alerts?action=unsubscribe" },
+    { "source": "/robots.txt", "destination": "/api/seo?kind=robots" },
+    { "source": "/sitemap.xml", "destination": "/api/seo?kind=sitemap" },
+    { "source": "/app.webmanifest", "destination": "/api/seo?kind=manifest" }
   ]
 }
