@@ -1682,7 +1682,7 @@ async function miniMap(el, e) {
   L.tileLayer(TILES, { maxZoom: 18 }).addTo(m);
   const c = cssVar("--pin-qual");
   L.circleMarker([e.lat, e.lng], { radius: 7, color: c, weight: 2, fillColor: c, fillOpacity: .5 }).addTo(m);
-  setTimeout(() => m.invalidateSize(), 0);
+  setTimeout(() => { if (railMapObj === m && el.isConnected) m.invalidateSize(); }, 0);
 }
 
 /* ---------------------------------------------------------------------------
