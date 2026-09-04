@@ -58,9 +58,88 @@
     --track-2: #16202f;
     --org-link: #2f7fc4;
 
+    /* Below-minimum rows step back. Fading toward white costs more legibility
+       than fading toward black, so light mode dims less. */
+    --dim: .55;
+    --row-hover: rgba(142, 200, 239, .04);
+    --row-sel: rgba(142, 200, 239, .07);
+    --star-reg-bg: rgba(26, 122, 77, .18);
+    --storm-bg: #4a1f22;
+    --storm-ink: #ffb4b4;
+    --map-bg: #0c1626;
+    /* Plain OSM tiles inverted to sit on the dark palette; light mode leaves
+       them alone. Read by nothing but the tile pane. */
+    --tile-filter: grayscale(1) invert(1) brightness(.82) contrast(1.04);
+
+    /* Read from JS so pins and sparklines have one source of truth per theme. */
+    --pin-qual: #8ec8ef;
+    --pin-below: #3a6ba3;
+    --pin-saved: #5fd08a;
+    --pin-origin: #e8eef6;
+    --spark: #24405f, #24405f, #2e5580, #3a6ba3, #5f9fd4, #8ec8ef;
+
     --cond: "Barlow Condensed", "Barlow Semi Condensed", system-ui, sans-serif;
     --ui: "Barlow Semi Condensed", system-ui, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  /* ------------------------------------------------------------------
+     Light mode. Not a bleached copy of the dark palette — these are the
+     colours the previous build used, lifted from the logo (pale ice
+     ground, navy ink, feather blue), remapped onto the Scoreboard
+     structure. The point is legibility at a ballfield in full Texas sun,
+     where the dark theme is at its worst.
+     ------------------------------------------------------------------ */
+  :root[data-theme="light"] {
+    --bg: #eaf2f9;
+    --bg-header: #ffffff;
+    --bg-filterbar: #f6fafd;
+    --bg-rail: #f6fafd;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-chip: #ffffff;
+    --bg-tag: #dbe8f4;
+    --hero-grad: linear-gradient(180deg, #ffffff, #e6f0f9);
+
+    --border-strong: #9bbdd8;
+    --border: #b7d0e4;
+    --border-soft: #d9e6f0;
+    --border-row: #d9e6f0;
+    --border-hero: #9bbdd8;
+    --border-map: #b7d0e4;
+
+    --accent: #1f6fb8;
+    --accent-ink: #ffffff;
+    --accent-mid: #6ba3ce;
+    --accent-bright: #2f7fc4;
+
+    --success: #16704a;
+    --success-fill: #1f7a4d;
+    --success-border: #9ed6b8;
+
+    --text: #0b1220;
+    --text-2: #33475e;
+    --text-3: #4a5f76;
+    --text-4: #62788f;
+
+    --track: #cfe0ee;
+    --track-2: #cfe0ee;
+    --org-link: #2f7fc4;
+
+    --dim: .7;
+    --row-hover: rgba(31, 111, 184, .06);
+    --row-sel: rgba(31, 111, 184, .10);
+    --star-reg-bg: rgba(31, 122, 77, .12);
+    --storm-bg: #fbdcdc;
+    --storm-ink: #a01b1b;
+    --map-bg: #e6eef5;
+    --tile-filter: saturate(.72) brightness(1.02);
+
+    --pin-qual: #1f6fb8;
+    --pin-below: #8fb4d4;
+    --pin-saved: #1f7a4d;
+    --pin-origin: #0b1220;
+    --spark: #cfe0ee, #cfe0ee, #a8c8e4, #6ba3ce, #2f7fc4, #1f6fb8;
   }
   * { box-sizing: border-box; }
   html { background: var(--bg); }
@@ -114,6 +193,35 @@
     border: 1px solid var(--border-strong); padding: 6px 13px;
   }
   .pill.ghost:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+  .iconbtn {
+    flex: none; width: 32px; height: 32px; border-radius: 999px; padding: 0;
+    background: transparent; border: 1px solid var(--border-strong); color: var(--text-3);
+    font-size: 14px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .iconbtn::after { content: ""; position: absolute; inset: -6px; }
+  .iconbtn { position: relative; }
+  .iconbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Install-to-home-screen banner. Sits above the phone tab bar. */
+  .install {
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto; z-index: 60;
+    background: var(--bg-header); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 12px;
+    padding: 12px 14px; display: flex; gap: 12px; align-items: center;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .45);
+    font-size: 14px; line-height: 1.35;
+  }
+  .install[hidden] { display: none !important; }
+  .install img { width: 40px; height: 40px; border-radius: 9px; flex: none; }
+  .install b { display: block; font-family: var(--cond); font-size: 17px; font-weight: 700; }
+  .install .steps { color: var(--text-3); font-size: 13px; }
+  .install .steps kbd { font: inherit; font-weight: 700; color: var(--accent); }
+  .install .close {
+    background: transparent; border: 0; color: var(--text-4); cursor: pointer;
+    font-size: 22px; line-height: 1; padding: 4px 8px;
+  }
 
   /* ---------------- Filter summary strip ---------------- */
   .filterbar {
@@ -177,7 +285,7 @@
   .tag.turf { background: var(--success-fill); color: #fff; }
   .tag.wx { color: var(--accent); }
   .tag.wx.wet { color: #cfe4f4; }
-  .tag.wx.storm { background: #4a1f22; color: #ffb4b4; }
+  .tag.wx.storm { background: var(--storm-bg); color: var(--storm-ink); }
 
   /* 6 weekly snapshots, ramped light toward the present. Rendered only when
      the scraper actually has that many weeks for the event. */
@@ -218,10 +326,10 @@
   .star::after { content: ""; position: absolute; inset: -6px; }
   .star:hover { border-color: var(--accent); color: var(--accent); }
   .star[data-state="watching"] { color: var(--accent); border-color: var(--accent); }
-  .star[data-state="registered"] { color: var(--success); border-color: var(--success); background: rgba(26, 122, 77, .18); }
-  .row:hover { background: rgba(142, 200, 239, .04); }
-  .row.below { opacity: .55; }
-  .row.sel { background: rgba(142, 200, 239, .07); }
+  .star[data-state="registered"] { color: var(--success); border-color: var(--success); background: var(--star-reg-bg); }
+  .row:hover { background: var(--row-hover); }
+  .row.below { opacity: var(--dim); }
+  .row.sel { background: var(--row-sel); }
   .row .when { text-align: center; font-family: var(--cond); line-height: 1.05; }
   .row .when .dd { font-size: 26px; font-weight: 800; }
   .row .when .dow { font-family: var(--ui); font-size: 12.5px; font-weight: 600; letter-spacing: .06em; color: var(--text-3); text-transform: uppercase; }
@@ -256,9 +364,9 @@
   .rail .sub { font-size: 15px; color: var(--text-2); }
   .rail .map {
     height: 150px; border-radius: 10px; border: 1px solid var(--border-map); margin: 14px 0 4px;
-    background: #0c1626; overflow: hidden;
+    background: var(--map-bg); overflow: hidden;
   }
-  .rail .map .leaflet-container { height: 100%; background: #0c1626; }
+  .rail .map .leaflet-container { height: 100%; background: var(--map-bg); }
   .spec { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 15px; }
   .spec .k { color: var(--text-3); }
   .spec .v { font-weight: 700; text-align: right; }
@@ -288,12 +396,12 @@
   .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 
   /* ---------------- Map view ---------------- */
-  #mapCanvas { height: 520px; border-radius: 12px; border: 1px solid var(--border-map); background: #0c1626; position: relative; z-index: 0; }
+  #mapCanvas { height: 520px; border-radius: 12px; border: 1px solid var(--border-map); background: var(--map-bg); position: relative; z-index: 0; }
   /* Inverting only the tile pane leaves markers, labels and attribution in
      their real colours. */
-  .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.82) contrast(1.04); }
-  .leaflet-container { background: #0c1626 !important; font-family: var(--ui) !important; }
-  .leaflet-control-attribution { background: rgba(8, 13, 21, .78) !important; color: var(--text-4) !important; font-size: 10.5px !important; }
+  .leaflet-tile-pane { filter: var(--tile-filter); }
+  .leaflet-container { background: var(--map-bg) !important; font-family: var(--ui) !important; }
+  .leaflet-control-attribution { background: color-mix(in srgb, var(--bg) 82%, transparent) !important; color: var(--text-4) !important; font-size: 10.5px !important; }
   .leaflet-control-attribution a { color: var(--text-3) !important; }
   .leaflet-control-zoom a {
     background: var(--bg-chip) !important; color: var(--text) !important;
@@ -326,7 +434,7 @@
     display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
     padding: 11px 8px; border-bottom: 1px solid var(--border-row);
   }
-  .nearrow:hover, .nearrow.sel { background: rgba(142, 200, 239, .04); }
+  .nearrow:hover, .nearrow.sel { background: var(--row-hover); }
   .nearrow .nm { font-family: var(--cond); font-size: 19px; font-weight: 600; line-height: 1.15; }
   .nearrow .nm.q { color: var(--accent); }
   .nearrow .mt { font-size: 13.5px; color: var(--text-3); }
@@ -554,6 +662,8 @@
     .tabbar button i { font-style: normal; font-size: 15px; line-height: 1; }
     body { padding-bottom: 0; }
     .rail.detail { max-height: 76svh; }
+    /* Clear the sticky tab bar. */
+    .install { bottom: calc(66px + env(safe-area-inset-bottom)); }
   }
 
   @media (max-width: 420px) {
@@ -565,6 +675,18 @@
     * { transition: none !important; animation: none !important; }
   }
 </style>
+<script>
+  // Runs before first paint so the page never flashes the wrong theme. No
+  // stored choice means follow the device.
+  (function () {
+    try {
+      var pick = localStorage.getItem("theme");
+      document.documentElement.dataset.theme =
+        pick === "light" || pick === "dark" ? pick
+        : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    } catch (e) { document.documentElement.dataset.theme = "dark"; }
+  })();
+</script>
 </head>
 <body>
 
@@ -572,6 +694,7 @@
   <img class="logo" src="icon-192.png" alt="" width="34" height="34">
   <h1>Baseball <span>Time</span></h1>
   <div class="fresh" id="fresh" hidden></div>
+  <button class="iconbtn" id="themeBtn" type="button"></button>
   <button class="pill" id="shareBtn" type="button">Share</button>
 </header>
 
@@ -656,6 +779,16 @@
   <p>Built and run by one dad in Sanger. If it saves you a Saturday of searching, a coffee keeps the scraper running. Questions, corrections, or a tournament we're missing? <a href="mailto:info@youthbaseballtime.com">info@youthbaseballtime.com</a>.</p>
   <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener">☕ Buy me a coffee</a>
 </footer>
+
+<div class="install" id="install" hidden>
+  <img src="icon-192.png" alt="">
+  <div style="flex:1">
+    <b>Add Baseball Time to your home screen</b>
+    <span class="steps" id="installSteps"></span>
+  </div>
+  <button class="btn" id="installBtn" hidden style="width:auto;padding:9px 14px;font-size:14px">Install</button>
+  <button class="close" id="installClose" aria-label="Dismiss">&times;</button>
+</div>
 
 <!-- Filter sheet -->
 <dialog class="sheet" id="sheet">
@@ -1014,11 +1147,13 @@ function weeklySeries(rows, div) {
   return [...byWeek.keys()].sort().slice(-6)
     .map((w) => { const r = byWeek.get(w); return exactCount(r, div) ?? r.total_registered ?? 0; });
 }
-const SPARK_RAMP = ["#24405f", "#24405f", "#2e5580", "#3a6ba3", "#5f9fd4", "#8ec8ef"];
+// Theme colours live in CSS so light and dark have one definition each.
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const sparkRamp = () => cssVar("--spark").split(",").map((s) => s.trim());
 function sparkHTML(series) {
-  if (series.length < 3) return "";                 // not enough weeks to show a trend
+  if (series.length < 3) return ""; // not enough weeks to show a trend
   const max = Math.max(...series, 1);
-  const ramp = SPARK_RAMP.slice(-series.length);
+  const ramp = sparkRamp().slice(-series.length);
   return `<div class="spark">${series.map((v, i) =>
     `<i style="height:${Math.max(2, Math.round((v / max) * 26))}px;background:${ramp[i]}"></i>`).join("")}</div>`;
 }
@@ -1327,10 +1462,11 @@ async function renderMap() {
     pinLayer = L.layerGroup().addTo(bigMap);
   }
   pinLayer.clearLayers();
+  const pin = { qual: cssVar("--pin-qual"), below: cssVar("--pin-below"), saved: cssVar("--pin-saved"), origin: cssVar("--pin-origin") };
   const pts = [];
   for (const e of withCoords) {
     const q = qualifies(e);
-    const color = saved.has(e.id) ? "#5fd08a" : q ? "#8ec8ef" : "#3a6ba3";
+    const color = saved.has(e.id) ? pin.saved : q ? pin.qual : pin.below;
     // "Pins by date" sizes the soonest events largest; "by fill" sizes by how
     // full the bracket is. Same set either way, different question.
     const div = primaryAge(e);
@@ -1353,7 +1489,7 @@ async function renderMap() {
     pts.push([e.lat, e.lng]);
   }
   pts.push([loc.lat, loc.lng]);
-  L.circleMarker([loc.lat, loc.lng], { radius: 5, color: "#e8eef6", weight: 2, fillOpacity: 1, fillColor: "#e8eef6" })
+  L.circleMarker([loc.lat, loc.lng], { radius: 5, color: pin.origin, weight: 2, fillOpacity: 1, fillColor: pin.origin })
     .bindTooltip(loc.label, { direction: "top" }).addTo(pinLayer);
   // Only re-frame when the result set itself changes. Saving an event re-renders
   // the pins, and refitting there would throw away the reader's pan and zoom.
@@ -1370,14 +1506,19 @@ function mapStampText() {
   const f = (d) => `${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
   return end ? `${f(start)} – ${f(end)}, ${end.getFullYear()}` : `${f(start)}, ${start.getFullYear()} – all dates`;
 }
+let railMapObj = null;
 async function miniMap(el, e) {
   if (!el) return;
   try { await ensureLeaflet(); } catch { return; }
   if (!el.isConnected) return;
-  const m = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, keyboard: false })
+  // renderDetail replaces the rail markup wholesale, so the previous Leaflet
+  // instance has to be torn down or it keeps its window listeners for good.
+  if (railMapObj) { try { railMapObj.remove(); } catch {} railMapObj = null; }
+  const m = railMapObj = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, keyboard: false })
     .setView([e.lat, e.lng], 10);
   L.tileLayer(TILES, { maxZoom: 18 }).addTo(m);
-  L.circleMarker([e.lat, e.lng], { radius: 7, color: "#8ec8ef", weight: 2, fillColor: "#8ec8ef", fillOpacity: .5 }).addTo(m);
+  const c = cssVar("--pin-qual");
+  L.circleMarker([e.lat, e.lng], { radius: 7, color: c, weight: 2, fillColor: c, fillOpacity: .5 }).addTo(m);
   setTimeout(() => m.invalidateSize(), 0);
 }
 
@@ -1877,6 +2018,79 @@ $("#addPlayer").addEventListener("submit", (ev) => {
       copy(url);
     }
   });
+})();
+
+/* ---------------------------------------------------------------------------
+   Theme. The head script already picked one; this wires the toggle and keeps
+   following the device until the reader overrides it explicitly.
+   --------------------------------------------------------------------------- */
+(function theme() {
+  const btn = $("#themeBtn");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const stored = () => { try { return localStorage.getItem("theme"); } catch { return null; } };
+
+  function apply(t, persist) {
+    document.documentElement.dataset.theme = t;
+    if (persist) { try { localStorage.setItem("theme", t); } catch {} }
+    meta.content = cssVar("--bg") || (t === "light" ? "#eaf2f9" : "#080d15");
+    const toLight = t !== "light";
+    btn.textContent = toLight ? "☀" : "☾";
+    btn.title = btn.ariaLabel = `Switch to ${toLight ? "light" : "dark"} mode`;
+    // Pins and sparklines are painted with resolved colours, so they need a
+    // repaint rather than just a restyle.
+    if (events.length) render();
+  }
+  apply(document.documentElement.dataset.theme === "light" ? "light" : "dark", false);
+  btn.addEventListener("click", () => apply(document.documentElement.dataset.theme === "light" ? "dark" : "light", true));
+  // Only track the device while the reader has not chosen for themselves.
+  matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", (e) => {
+    if (!stored()) apply(e.matches ? "light" : "dark", false);
+  });
+})();
+
+/* ---------------------------------------------------------------------------
+   Install to home screen. Android/desktop Chrome fire beforeinstallprompt, so
+   they get a real button. iOS never does, so it gets the Share → Add to Home
+   Screen steps instead. Shown once per device, never inside the installed app.
+   --------------------------------------------------------------------------- */
+(function installPrompt() {
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  let seen = false;
+  try { seen = localStorage.getItem("installSeen") === "1"; } catch {}
+  if (standalone || seen) return;
+  const box = $("#install"), btn = $("#installBtn"), steps = $("#installSteps");
+  const markSeen = () => { try { localStorage.setItem("installSeen", "1"); } catch {} };
+  const show = () => { box.hidden = false; markSeen(); };
+  const hide = () => { box.hidden = true; markSeen(); };
+  $("#installClose").addEventListener("click", hide);
+  matchMedia("(display-mode: standalone)").addEventListener?.("change", (e) => { if (e.matches) hide(); });
+
+  const ua = navigator.userAgent;
+  const iOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iOS) {
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+    steps.innerHTML = isSafari
+      ? `Tap <kbd>Share</kbd> then <kbd>Add to Home Screen</kbd>.`
+      : `Open this page in <kbd>Safari</kbd>, tap <kbd>Share</kbd>, then <kbd>Add to Home Screen</kbd>.`;
+    setTimeout(show, 2500);
+    return;
+  }
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferred = e;
+    steps.textContent = "Works like an app, opens full screen.";
+    btn.hidden = false;
+    show();
+  });
+  btn.addEventListener("click", async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    await deferred.userChoice;
+    deferred = null;
+    hide();
+  });
+  window.addEventListener("appinstalled", hide);
 })();
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

@@ -49,6 +49,19 @@ Filters live in a modal sheet whose primary button previews the result count
 before you apply it. Everything (filters, players, saved) stays in
 `localStorage` and is never sent anywhere.
 
+**Light and dark.** The Scoreboard palette is the dark one and the design's
+authority; light mode reuses the colours of the previous build, lifted from the
+logo (pale ice ground, navy ink, feather blue), remapped onto the same
+structure. It exists because the app gets used standing at a ballfield in full
+Texas sun, where a dark screen is at its worst. With no stored choice the page
+follows `prefers-color-scheme` and keeps tracking it; the masthead toggle sets
+an explicit preference that wins from then on. A script in `<head>` applies the
+theme before first paint so there is no flash.
+
+Colours that JavaScript resolves rather than CSS — map pins, the sparkline ramp,
+the tile filter — are declared as custom properties and read with `cssVar()`, so
+each theme has exactly one definition.
+
 ### Design decisions worth knowing
 
 - **Map tiles** are plain OpenStreetMap, inverted and desaturated in CSS to sit
