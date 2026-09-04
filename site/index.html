@@ -193,6 +193,17 @@
     border: 1px solid var(--border-strong); padding: 6px 13px;
   }
   .pill.ghost:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+  /* The coffee link pays for the scraper, so it lives in the masthead rather
+     than under 4000px of board where nobody scrolls. */
+  .masthead .coffee {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    background: #ffdd00; color: #000; text-decoration: none;
+    font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap;
+    padding: 8px 13px; border-radius: 999px;
+  }
+  .masthead .coffee:hover { background: #ffe94d; }
+  .fresh .short { display: none; }
+
   .iconbtn {
     flex: none; width: 32px; height: 32px; border-radius: 999px; padding: 0;
     background: transparent; border: 1px solid var(--border-strong); color: var(--text-3);
@@ -224,19 +235,38 @@
   }
 
   /* ---------------- Filter summary strip ---------------- */
+  /* The search parameters are the thing people come back to change, so the bar
+     sticks under the masthead rather than scrolling away behind a 4000px board,
+     and carries a shadow once it is doing so. */
   .filterbar {
+    position: sticky; top: 0; z-index: 25;
     background: var(--bg-filterbar);
-    border-bottom: 1px solid var(--border);
-    padding: 14px max(26px, env(safe-area-inset-right)) 14px max(26px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--border-strong);
+    padding: 12px max(26px, env(safe-area-inset-right)) 12px max(26px, env(safe-area-inset-left));
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
-  .filterbar .eyebrow { flex: none; }
-  .sumbox { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .sumbox .pill { flex: none; }
-  .summary {
-    font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: .02em;
-    flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .filterbar.stuck { box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+  :root[data-theme="light"] .filterbar.stuck { box-shadow: 0 6px 18px rgba(11, 18, 32, .14); }
+
+  /* One chip per parameter instead of a run-on sentence: each says what it is
+     and opens the sheet on the control that changes it. */
+  .fchips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .fchip {
+    font: inherit; font-size: 14px; font-weight: 700; line-height: 1; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-chip); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 999px;
+    padding: 8px 13px; min-height: 34px; cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
   }
+  .fchip:hover { border-color: var(--accent); color: var(--accent); }
+  .fchip::after { content: "▾"; font-size: 11px; color: var(--text-4); }
+  .fchip:hover::after { color: var(--accent); }
+  /* Filters that hide results earn a warmer chip — otherwise a missing
+     tournament looks like missing data. */
+  .fchip.limiting { border-color: var(--accent); color: var(--accent); }
+  .fchip.limiting::after { color: var(--accent); }
+  .filterbar .eyebrow { flex: none; }
   nav.views { margin-left: auto; display: flex; gap: 20px; align-items: center; }
   nav.views button {
     font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
@@ -525,7 +555,8 @@
   .sheet .shead { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
   .sheet .shead h2 { margin: 0; font-family: var(--cond); font-size: 24px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
   .sheet .shead .x { margin-left: auto; font: inherit; font-size: 22px; line-height: 1; background: none; border: 0; color: var(--text-3); cursor: pointer; padding: 4px 8px; }
-  .field { margin-top: 16px; }
+  .field { margin-top: 16px; scroll-margin: 16px; border-radius: 8px; }
+  .field.flash { outline: 2px solid var(--accent); outline-offset: 8px; }
   .field > .eyebrow { display: block; margin-bottom: 8px; }
   .rowflex { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
   .stepper { display: flex; align-items: center; gap: 12px; }
@@ -613,15 +644,20 @@
     .masthead .logo { width: 28px; height: 28px; }
     .masthead h1 { font-size: 20px; }
     .fresh { font-size: 12px; }
-    .fresh .full { display: none; }
-    .filterbar {
-      padding: 12px 14px; gap: 10px; flex-direction: column; align-items: stretch;
-    }
+    .fresh .full, .fresh .long { display: none; }
+    .fresh .short { display: inline; }
+    .masthead .coffee .lbl { display: none; }
+    .masthead .coffee { width: 32px; height: 32px; padding: 0; gap: 0; justify-content: center; font-size: 15px; }
+    /* One scrollable row of chips, with "All filters" pinned beside it. */
+    .filterbar { padding: 10px 12px; gap: 8px; flex-wrap: nowrap; }
     .filterbar .eyebrow { display: none; }
-    .filterbar .sumbox {
-      background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px;
+    .fchips {
+      flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+      /* Fades the clipped chip so the row reads as scrollable rather than broken. */
+      mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
     }
-    .summary { font-size: 16px; }
+    .fchips::-webkit-scrollbar { display: none; }
+    #changeBtn { flex: none; }
     nav.views { display: none; }
     .col-main { padding: 16px 14px 30px; }
     .rail { padding: 18px 16px 24px; }
@@ -694,16 +730,15 @@
   <img class="logo" src="icon-192.png" alt="" width="34" height="34">
   <h1>Baseball <span>Time</span></h1>
   <div class="fresh" id="fresh" hidden></div>
+  <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕<span class="lbl">Buy me a coffee</span></a>
   <button class="iconbtn" id="themeBtn" type="button"></button>
   <button class="pill" id="shareBtn" type="button">Share</button>
 </header>
 
-<div class="filterbar">
+<div class="filterbar" id="filterbar">
   <span class="eyebrow">Showing</span>
-  <div class="sumbox">
-    <span class="summary" id="summary">Loading…</span>
-    <button class="pill ghost" id="changeBtn" type="button">Change</button>
-  </div>
+  <div class="fchips" id="fchips"></div>
+  <button class="pill ghost" id="changeBtn" type="button">All filters</button>
   <nav class="views" id="views">
     <button type="button" data-view="board" aria-current="true">Board</button>
     <button type="button" data-view="map">Map</button>
@@ -798,12 +833,12 @@
       <button class="x" type="button" id="sheetClose" aria-label="Close">✕</button>
     </div>
 
-    <div class="field">
+    <div class="field" data-field="ages">
       <span class="eyebrow">Age</span>
       <div class="chips" id="fAges"></div>
     </div>
 
-    <div class="field rowflex">
+    <div class="field rowflex" data-field="dist">
       <div style="flex:1 1 220px">
         <span class="eyebrow" style="display:block;margin-bottom:8px">Measure from</span>
         <div style="display:flex;gap:8px">
@@ -822,12 +857,12 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" data-field="win">
       <span class="eyebrow">When</span>
       <div class="chips" id="fWhen"></div>
     </div>
 
-    <div class="field rowflex">
+    <div class="field rowflex" data-field="min">
       <div>
         <span class="eyebrow" style="display:block;margin-bottom:8px">Minimum teams in your age</span>
         <div class="stepper">
@@ -845,7 +880,7 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" data-field="orgs">
       <span class="eyebrow" id="fOrgsLbl">Orgs</span>
       <div class="chips" id="fOrgs"></div>
     </div>
@@ -1073,10 +1108,18 @@ function paintFreshness() {
       : mins < 120 ? "1 hour ago"
       : mins < 1440 ? `${Math.round(mins / 60)} hours ago`
       : `${Math.round(mins / 1440)} days ago`;
+    // The phone masthead has no room for "Checked 3 hours ago" beside the
+    // coffee, theme and share controls, so it gets "3h" and keeps the tooltip.
+    const short = mins < 60 ? `${Math.max(1, mins)}m`
+      : mins < 1440 ? `${Math.round(mins / 60)}h`
+      : `${Math.round(mins / 1440)}d`;
     // A scrape that hasn't landed in over a day means the counts on screen are
     // no longer "checked twice daily", so say so rather than showing a green dot.
-    el.classList.toggle("stale", mins > 1440);
-    el.innerHTML = `<span class="full">Checked&nbsp;</span>${esc(mins > 1440 ? "Stale · " + txt : txt)}`;
+    const stale = mins > 1440;
+    el.classList.toggle("stale", stale);
+    el.innerHTML = `<span class="full">Checked&nbsp;</span>`
+      + `<span class="long">${esc(stale ? "Stale · " + txt : txt)}</span>`
+      + `<span class="short">${esc(stale ? "!" + short : short)}</span>`;
   };
   show();
   setInterval(show, 60000);
@@ -1107,6 +1150,23 @@ function countFor(f) {
 function boardRows() {
   const rows = selectFor(filters);
   return filters.hideBelow ? rows.filter(qualifies) : rows;
+}
+
+// One chip per live parameter. "limiting" marks the two that can hide events,
+// so a thin board reads as a filter choice rather than missing data.
+function renderFilterChips() {
+  const f = filters;
+  const win = WINDOWS.find((w) => w.d === f.win);
+  const chips = [
+    { field: "ages", text: f.ages.length ? f.ages.join(" + ") : "No age picked", limiting: !f.ages.length },
+    { field: "dist", text: `${DIST_STOPS[f.dist]} mi of ${loc.label}` },
+    { field: "win", text: f.win ? `Next ${win.l.toLowerCase()}` : "All dates" },
+    { field: "min", text: `${f.minTeams}+ teams` },
+  ];
+  if (f.hideBelow) chips.push({ field: "min", text: `Hiding under ${f.minTeams}`, limiting: true });
+  if (f.orgs.length !== ORGS.length) chips.push({ field: "orgs", text: `${f.orgs.length} of ${ORGS.length} orgs`, limiting: true });
+  $("#fchips").innerHTML = chips.map((c) =>
+    `<button class="fchip${c.limiting ? " limiting" : ""}" type="button" data-field="${c.field}">${esc(c.text)}</button>`).join("");
 }
 
 function summaryText(f) {
@@ -1810,7 +1870,7 @@ function render() {
   store.set("hideBelow", filters.hideBelow);
   store.set("orgs", filters.orgs);
 
-  $("#summary").textContent = summaryText(filters);
+  renderFilterChips();
   currentFilters = {
     label: loc.label, lat: loc.lat, lng: loc.lng,
     miles: DIST_STOPS[filters.dist], ages: filters.ages, min: filters.minTeams, orgs: filters.orgs,
@@ -1846,10 +1906,18 @@ function setView(v) {
 let draft = null;
 const sheet = $("#sheet");
 
-function openSheet() {
+function openSheet(field) {
   draft = JSON.parse(JSON.stringify(filters));
   paintSheet();
   sheet.showModal();
+  // Opened from a chip: put that control in view and flag it, so the tap lands
+  // somewhere obvious instead of at the top of a long sheet.
+  const target = field && sheet.querySelector(`[data-field="${field}"]`);
+  if (target) {
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    target.classList.add("flash");
+    setTimeout(() => target.classList.remove("flash"), 1400);
+  }
 }
 function paintSheet() {
   $("#fAges").innerHTML = DIVISIONS.map((d) =>
@@ -1892,7 +1960,7 @@ $("#fHide").addEventListener("click", () => { draft.hideBelow = !draft.hideBelow
 $("#fReset").addEventListener("click", () => { draft = JSON.parse(JSON.stringify(DEFAULTS)); paintSheet(); });
 $("#fApply").addEventListener("click", () => { filters = draft; visible = PAGE; sheet.close(); render(); });
 $("#sheetClose").addEventListener("click", () => sheet.close());
-$("#changeBtn").addEventListener("click", openSheet);
+$("#changeBtn").addEventListener("click", () => openSheet());
 
 $("#fLocSet").addEventListener("click", async () => {
   const q = $("#fLoc").value.trim(), out = $("#fLocOut");
@@ -1942,6 +2010,7 @@ document.addEventListener("click", (ev) => {
     return;
   }
   if (t.dataset.pins) { pinMode = t.dataset.pins; $$("[data-pins]").forEach((b) => b.classList.toggle("on", b === t)); return renderMap(); }
+  if (t.dataset.field && t.classList.contains("fchip")) return openSheet(t.dataset.field);
   if (t.dataset.fix) {
     const f = t.dataset.fix;
     if (f === "wider") filters.dist = Math.min(DIST_STOPS.length - 1, filters.dist + 1);
@@ -2091,6 +2160,16 @@ $("#addPlayer").addEventListener("submit", (ev) => {
     hide();
   });
   window.addEventListener("appinstalled", hide);
+})();
+
+// Shadow under the filter bar only once it is actually stuck to the top, so it
+// reads as a layer over the board rather than a permanent divider.
+(function stickyBar() {
+  const bar = $("#filterbar");
+  const sync = () => bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0.5);
+  addEventListener("scroll", sync, { passive: true });
+  addEventListener("resize", sync);
+  sync();
 })();
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
