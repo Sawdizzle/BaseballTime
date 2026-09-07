@@ -25,11 +25,24 @@ export const SITES = {
 };
 export const FALLBACK_HOST = "youthbaseballtime.com";
 
+// ?site=tx forces a brand, mirroring the client's FORCED handling, because a
+// preview deploy and localhost answer on a hostname we do not own. Without the
+// server honouring it too, a previewed landing page rendered a national title
+// around a Texas h1 and canonical.
 export function hostOf(req) {
+  const forced = String(req.query?.site || "");
+  if (forced) {
+    const hit = Object.keys(SITES).find((h) => SITES[h].key === forced);
+    if (hit) return hit;
+  }
   const raw = String(req.headers["x-forwarded-host"] || req.headers.host || FALLBACK_HOST);
   const host = raw.split(",")[0].trim().split(":")[0].replace(/^www\./, "").toLowerCase();
   return SITES[host] ? host : FALLBACK_HOST;
 }
+
+// A forced-brand URL points its canonical at the other domain, so it must never
+// be indexable on whichever host actually served it.
+export const isForced = (req) => Boolean(String(req.query?.site || ""));
 
 export const DIVISIONS = ["10U", "11U", "12U", "13U", "14U"];
 

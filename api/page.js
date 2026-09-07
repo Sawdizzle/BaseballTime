@@ -13,7 +13,7 @@
 import { readFile } from "node:fs/promises";
 import {
   SITES, hostOf, METROS, metroBySlug, parseLandingPath, landingPath,
-  fetchEvents, eventsFor, LANDING_RADIUS, esc, DIVISIONS, primaryFor, primaryMetros,
+  fetchEvents, eventsFor, LANDING_RADIUS, esc, DIVISIONS, primaryFor, primaryMetros, isForced,
 } from "./_shared.js";
 
 const SSR_ROWS = 40;
@@ -169,6 +169,12 @@ export default async function handler(req, res) {
     }</script></head>`)
     .replace('<div id="board"></div>', `<div id="board">${boardHTML(rows, target.age)}</div>`)
     .replace("</footer>", `${relatedHTML(rows, target, primaries)}</footer>`);
+
+  // A previewed brand canonicalises to the other domain, so it must not be
+  // indexable on whichever host actually served it.
+  if (isForced(req)) {
+    html = html.replace(/<meta name="robots" content="[^"]*">/, '<meta name="robots" content="noindex, follow">');
+  }
 
   // What the client needs to come up already filtered, without a geocode.
   const boot = {
