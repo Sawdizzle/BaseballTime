@@ -31,6 +31,9 @@ because the call site omitted it.
   user's chosen location (zip via Zippopotam, city via Open-Meteo); the
   scraper's `distance_miles` column is Sanger-based and only used for the
   run log's qualifying summary.
+  The install prompt waits for a second visit *and* for a scroll or a tap on the
+  board: it used to appear 2.5s into a first visit, as a fixed bar over the rows
+  the reader had just arrived to read.
   Installable as a home-screen app: `manifest.webmanifest`, `sw.js` (shell
   cache only; data is always live), and the icon PNGs derived from
   `icon.png` (the 2048px master; also the masthead logo at 192px). If the
@@ -95,6 +98,14 @@ theme before first paint so there is no flash.
 Colours that JavaScript resolves rather than CSS — map pins, the sparkline ramp,
 the tile filter — are declared as custom properties and read with `cssVar()`, so
 each theme has exactly one definition.
+
+**Every text colour clears 4.5:1 against every ground it lands on**, checked
+against the actual card, rail and chip backgrounds rather than just the page.
+`--text-4` used to measure 3.66 on cards, and it carries 12–13px type: the
+eyebrows, the month tallies, and the whole footer explaining what the counts
+mean. `--dim`, which steps a below-minimum row back, stops at the point where
+the dimmed text still passes — a row under your floor should recede, not become
+unreadable. Retune these with a contrast checker, not by eye.
 
 ## URLs, and the pages search engines can find
 
@@ -201,7 +212,22 @@ Five Tool) are regional operators that will stay Texas-heavy whatever we do.
   1000-row API cap.
 - **Distances are straight-line**, not driving miles. The design called for
   "18 mi · 27 min"; drive time needs a routing provider we don't have, so the
-  minutes are omitted instead of estimated.
+  minutes are omitted instead of estimated. "Use my location" hands the browser
+  coordinates straight to the filter and labels them "My location" — there is no
+  key-free reverse geocoder worth a dependency, and inventing a place name would
+  be worse than naming none.
+
+- **Only about a third of events publish a venue.** With one, Directions
+  searches Maps by name and lands on the field. Without one, a text search for
+  "Denton, TX" drops you downtown, so the link carries the coordinates instead,
+  and the detail rail says the organizer hasn't published the field. The
+  distance is measured from the same point either way.
+
+- **The "best bet" card only picks an event with an exact count for your age.**
+  An org that publishes no per-age split is judged on its all-ages total, so a
+  PAC event with forty teams across every age clears a 3-team 14U floor with
+  nobody in 14U. That is fine for a row marked `≈`; it is not fine for the one
+  card the page puts its name behind.
 - **Entry fees** are published by only about a sixth of events, so the fee is
   dropped from a row when missing and the season total says how many of the
   registered events actually published one.
