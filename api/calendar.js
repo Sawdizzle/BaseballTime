@@ -1,4 +1,4 @@
-// GET /api/calendar.ics?lat=&lng=&miles=&ages=&min=&orgs=
+// GET /api/calendar.ics?lat=&lng=&miles=&ages=&min=&orgs=&hide=&win=
 //
 // A subscribable calendar of tournaments matching the same filters the
 // dashboard uses, so a coach can keep the shortlist in the calendar they
@@ -9,6 +9,43 @@ const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
 const ALL_AGES = ["10U", "11U", "12U", "13U", "14U"];
 const MAX_EVENTS = 400;
+const API_PAGE = 1000;
+// Matches the dashboard: three days without a sighting means the organizer
+// delisted it. Measured per-org against that org's newest row, so a broken
+// parser ages its whole catalogue together and drops none of it.
+const STALE_MS = 3 * 86400e3;
+function dropDelisted(rows) {
+  const newestByOrg = new Map();
+  for (const e of rows) {
+    const t = Date.parse(e.last_seen) || 0;
+    if (t > (newestByOrg.get(e.org) || 0)) newestByOrg.set(e.org, t);
+  }
+  return rows.filter((e) => (Date.parse(e.last_seen) || 0) >= (newestByOrg.get(e.org) || 0) - STALE_MS);
+}
+
+const COLUMNS = "id,org,name,city,state,venue,lat,lng,start_date,end_date,divisions,division_counts,total_registered,event_url,last_seen";
+
+// PostgREST truncates at 1000 rows and reports it only in Content-Range, so
+// page rather than trusting one request. The order carries a unique tiebreak
+// because paging a non-unique sort drops and duplicates rows.
+async function allEvents(today) {
+  const out = [];
+  for (let from = 0; ; from += API_PAGE) {
+    const url = `${SUPABASE_URL}/rest/v1/events?select=${COLUMNS}&end_date=gte.${today}&order=start_date.asc,id.asc`;
+    const r = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        "Accept-Profile": "tourneyscan",
+        Range: `${from}-${from + API_PAGE - 1}`,
+      },
+    });
+    if (!r.ok) throw new Error(`${r.status} from Supabase`);
+    const batch = await r.json();
+    out.push(...batch);
+    if (batch.length < API_PAGE) return out;
+  }
+}
 
 const R = 3958.8;
 const toR = (d) => (d * Math.PI) / 180;
@@ -18,7 +55,9 @@ function miles(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-const esc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+// RFC 5545 §3.3.11: backslash first, then the delimiters. A raw ";" would
+// start a property parameter and corrupt the line it sits on.
+const esc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 const stamp = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 const dateOnly = (iso) => String(iso || "").slice(0, 10).replace(/-/g, "");
 // An all-day VEVENT's DTEND is exclusive, so push it one day past the last day.
@@ -48,22 +87,26 @@ export default async function handler(req, res) {
     const lat = parseFloat(q.lat), lng = parseFloat(q.lng);
     const maxMiles = Math.min(Math.max(parseInt(q.miles, 10) || 80, 0), 500);
     const minTeams = Math.max(parseInt(q.min, 10) || 0, 0);
+    // The dashboard's team floor only hides events when "hide below" is on;
+    // applying it unconditionally here made the calendar stricter than the
+    // board it was supposed to mirror.
+    const hideBelow = q.hide === "1";
+    const winDays = Math.min(Math.max(parseInt(q.win, 10) || 0, 0), 730);
     const ages = String(q.ages || "").split(",").map((a) => a.trim().toUpperCase()).filter((a) => ALL_AGES.includes(a));
     const wantAges = ages.length ? ages : ALL_AGES;
     const orgs = String(q.orgs || "").split(",").map((o) => o.trim().toUpperCase()).filter(Boolean);
     const here = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 
     const today = new Date().toISOString().slice(0, 10);
-    const url = `${SUPABASE_URL}/rest/v1/events?select=id,org,name,city,state,venue,lat,lng,start_date,end_date,divisions,division_counts,total_registered,event_url&end_date=gte.${today}&order=start_date.asc`;
-    const r = await fetch(url, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, "Accept-Profile": "tourneyscan" },
-    });
-    if (!r.ok) throw new Error(`${r.status} from Supabase`);
-    const rows = await r.json();
+    const cutoff = winDays ? new Date(Date.now() + winDays * 86400e3).toISOString().slice(0, 10) : null;
+    // Events delisted by their organizer would otherwise sit in a subscriber's
+    // calendar forever.
+    const rows = dropDelisted(await allEvents(today));
 
     const picked = [];
     for (const e of rows) {
       if (!e.start_date) continue;
+      if (cutoff && e.start_date > cutoff) continue;
       const evAges = (e.divisions || []).filter((d) => wantAges.includes(d));
       if (!evAges.length) continue;
       if (orgs.length && !orgs.includes(String(e.org).toUpperCase())) continue;
@@ -75,7 +118,7 @@ export default async function handler(req, res) {
       }
       const counts = e.division_counts || {};
       const best = Math.max(...evAges.map((a) => counts[a] ?? e.total_registered ?? 0));
-      if (best < minTeams) continue;
+      if (hideBelow && best < minTeams) continue;
       picked.push({ ...e, dist, evAges, counts });
       if (picked.length >= MAX_EVENTS) break;
     }

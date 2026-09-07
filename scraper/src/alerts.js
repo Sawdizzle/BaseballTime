@@ -13,6 +13,21 @@ const KEY = process.env.RESEND_API_KEY;
 const MAX_ROWS = 12;
 const log = console.error;
 
+// This job has no request to read a hostname off, so a signup records the
+// domain it came from in its filters blob (see currentFilters in
+// site/index.html). Someone who signed up on the national brand should not be
+// confirmed by a page — or a sign-off — for the Texas one. ALERT_SITE stays the
+// fallback for signups made before the field existed.
+const BRANDS = {
+  "youthbaseballtime.com": "Baseball Time",
+  "youthbaseballtimeintx.com": "Baseball Time in TX",
+};
+function siteFor(filters) {
+  const h = String(filters?.site || "").replace(/^www\./, "").toLowerCase();
+  if (!BRANDS[h]) return { url: SITE, brand: "Baseball Time in TX" };
+  return { url: `https://www.${h}`, brand: BRANDS[h] };
+}
+
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const day = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -25,11 +40,11 @@ async function sendEmail({ to, subject, html, text }) {
   if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
 }
 
-const shell = (heading, inner, unsubUrl) => `<div style="font:16px/1.5 system-ui,sans-serif;color:#0b1220;max-width:560px;margin:0 auto;padding:20px">
+const shell = (site, heading, inner, unsubUrl) => `<div style="font:16px/1.5 system-ui,sans-serif;color:#0b1220;max-width:560px;margin:0 auto;padding:20px">
 <h1 style="font-size:20px;margin:0 0 14px">${heading}</h1>
 ${inner}
 <p style="margin-top:26px;font-size:12px;color:#4a5f76;border-top:1px solid #b7d0e4;padding-top:12px">
-Baseball Time in TX — free, run by a dad in Sanger.
+${esc(site.brand)} — free, run by a dad in Sanger.
 <a href="${unsubUrl}" style="color:#4a5f76">Unsubscribe</a>
 </p></div>`;
 
@@ -38,6 +53,9 @@ function matches(ev, f) {
   const mine = (ev.divisions || []).filter((d) => ages.includes(d));
   if (!mine.length) return null;
   if (Array.isArray(f.orgs) && f.orgs.length && !f.orgs.includes(ev.org)) return null;
+  // The board only looks this far ahead, so an alert about something eight
+  // months out is not the search the subscriber was looking at.
+  if (f.win && ev.start_date > new Date(Date.now() + f.win * 86400e3).toISOString().slice(0, 10)) return null;
   let dist = null;
   if (Number.isFinite(f.lat) && Number.isFinite(f.lng)) {
     if (ev.lat == null || ev.lng == null) return null;
@@ -46,7 +64,11 @@ function matches(ev, f) {
   }
   const counts = ev.division_counts || {};
   const best = Math.max(...mine.map((a) => counts[a] ?? ev.total_registered ?? 0));
-  if (best < (f.min ?? 0)) return null;
+  // The team floor only hides rows on the board when "hide below" is on.
+  // Applying it unconditionally made the digest a stricter search than the one
+  // the subscriber signed up from. Signups predating this field have no
+  // hideBelow, and false is what the board defaults to.
+  if (f.hideBelow && best < (f.min ?? 0)) return null;
   return { mine, dist, counts };
 }
 
@@ -67,22 +89,23 @@ async function main() {
   const retryFloor = new Date(Date.now() - 7 * 86400e3).toISOString();
   const { data: pending, error: pErr } = await db
     .from("alert_subscriptions")
-    .select("id,email,token")
+    .select("id,email,token,filters")
     .eq("status", "pending")
     .is("confirm_sent_at", null)
     .gte("created_at", retryFloor);
   if (pErr) throw pErr;
   for (const sub of pending || []) {
-    const url = `${SITE}/confirm?t=${sub.token}`;
+    const site = siteFor(sub.filters);
+    const url = `${site.url}/confirm?t=${sub.token}`;
     try {
       await sendEmail({
         to: sub.email,
-        subject: "Confirm your Baseball Time alerts",
+        subject: `Confirm your ${site.brand} alerts`,
         text: `Confirm your alerts: ${url}\n\nIf you didn't ask for this, ignore this email and nothing will be sent.`,
-        html: shell("One tap to start", `<p>Confirm and we'll email you when new tournaments match your search.</p>
+        html: shell(site, "One tap to start", `<p>Confirm and we'll email you when new tournaments match your search.</p>
 <p><a href="${url}" style="display:inline-block;background:#1f6fb8;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:6px">Confirm my alerts</a></p>
 <p style="font-size:13px;color:#4a5f76">If you didn't ask for this, ignore this email and nothing will be sent.</p>`,
-          `${SITE}/unsubscribe?t=${sub.token}`),
+          `${site.url}/unsubscribe?t=${sub.token}`),
       });
       await db.from("alert_subscriptions").update({ confirm_sent_at: new Date().toISOString() }).eq("id", sub.id);
       log(`alerts: confirmation sent to ${sub.email}`);
@@ -100,12 +123,23 @@ async function main() {
   if (!active?.length) { log("alerts: no active subscribers."); return; }
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: events, error: eErr } = await db
+  const { data: allEvents, error: eErr } = await db
     .from("events")
-    .select("id,org,name,city,state,lat,lng,start_date,end_date,divisions,division_counts,total_registered,event_url,first_seen")
+    .select("id,org,name,city,state,lat,lng,start_date,end_date,divisions,division_counts,total_registered,event_url,first_seen,last_seen")
     .gte("end_date", today)
     .order("start_date");
   if (eErr) throw eErr;
+  // Never email about an event its organizer has already delisted. Judged per
+  // org against that org's newest row, so a broken parser doesn't make every
+  // event it scrapes look cancelled.
+  const newestByOrg = new Map();
+  for (const e of allEvents) {
+    const t = Date.parse(e.last_seen) || 0;
+    if (t > (newestByOrg.get(e.org) || 0)) newestByOrg.set(e.org, t);
+  }
+  const events = allEvents.filter(
+    (e) => (Date.parse(e.last_seen) || 0) >= (newestByOrg.get(e.org) || 0) - 3 * 86400e3
+  );
 
   for (const sub of active) {
     const gapHours = sub.frequency === "daily" ? 20 : 24 * 6.5;
@@ -122,7 +156,8 @@ async function main() {
     if (!fresh.length) continue;
 
     const rows = fresh.slice(0, MAX_ROWS);
-    const unsub = `${SITE}/unsubscribe?t=${sub.token}`;
+    const site = siteFor(f);
+    const unsub = `${site.url}/unsubscribe?t=${sub.token}`;
     const li = rows.map(({ ev, mine, dist, counts }) => {
       const when = ev.end_date && ev.end_date !== ev.start_date ? `${day(ev.start_date)}–${day(ev.end_date)}` : day(ev.start_date);
       const teams = mine.map((a) => `${a}: ${counts[a] ?? "~" + (ev.total_registered ?? 0)}`).join(", ");
@@ -133,7 +168,7 @@ async function main() {
     const textRows = rows.map(({ ev, mine, dist, counts }) =>
       `- ${ev.name} — ${day(ev.start_date)} — ${[ev.city, ev.state].filter(Boolean).join(", ")}${dist != null ? ` (${Math.round(dist)} mi)` : ""}\n  ${mine.map((a) => `${a}: ${counts[a] ?? "~" + (ev.total_registered ?? 0)}`).join(", ")} teams — ${ev.event_url}`
     ).join("\n");
-    const more = fresh.length > rows.length ? `<p style="font-size:14px"><a href="${SITE}" style="color:#1f6fb8">and ${fresh.length - rows.length} more</a></p>` : "";
+    const more = fresh.length > rows.length ? `<p style="font-size:14px"><a href="${site.url}" style="color:#1f6fb8">and ${fresh.length - rows.length} more</a></p>` : "";
     const label = f.label ? ` near ${f.label}` : "";
     const subject = `${fresh.length} new tournament${fresh.length === 1 ? "" : "s"}${label}`;
 
@@ -142,7 +177,7 @@ async function main() {
         to: sub.email,
         subject,
         text: `New tournaments matching your search${label}:\n\n${textRows}\n\nUnsubscribe: ${unsub}`,
-        html: shell(subject, `<ul style="padding-left:18px;margin:0">${li}</ul>${more}`, unsub),
+        html: shell(site, subject, `<ul style="padding-left:18px;margin:0">${li}</ul>${more}`, unsub),
       });
       await db.from("alert_subscriptions").update({ last_sent_at: new Date().toISOString() }).eq("id", sub.id);
       log(`alerts: digest of ${fresh.length} sent to ${sub.email}`);
