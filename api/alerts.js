@@ -5,7 +5,21 @@
 // to read anyone's address back out of the table.
 const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
-const SITE = "https://www.youthbaseballtimeintx.com";
+// These pages are reached from a link in an email, and that link can point at
+// either brand, so the page has to name the domain it was actually opened on.
+// Hardcoding one meant a national-domain signup was confirmed by a Texas page.
+const SITES = {
+  "youthbaseballtime.com": "Baseball Time",
+  "youthbaseballtimeintx.com": "Baseball Time in TX",
+};
+const FALLBACK = "youthbaseballtime.com";
+
+function siteOf(req) {
+  const raw = String(req.headers["x-forwarded-host"] || req.headers.host || FALLBACK);
+  const host = raw.split(",")[0].trim().split(":")[0].replace(/^www\./, "").toLowerCase();
+  const key = SITES[host] ? host : FALLBACK;
+  return { brand: SITES[key], url: `https://www.${key}` };
+}
 
 async function rpc(fn, body) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -22,9 +36,9 @@ async function rpc(fn, body) {
   return r.json();
 }
 
-const page = (title, body) => `<!doctype html><html lang="en"><head>
+const render = (site, title, body) => `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Baseball Time in TX</title>
+<title>${title} — ${site.brand}</title>
 <link rel="icon" type="image/png" href="/icon-192.png">
 <style>
   body{margin:0;min-height:100svh;display:grid;place-items:center;background:#eaf2f9;color:#0b1220;
@@ -37,9 +51,11 @@ const page = (title, body) => `<!doctype html><html lang="en"><head>
         padding:10px 18px;border-radius:6px}
 </style></head><body><div class="card">
 <img src="/icon-192.png" alt=""><h1>${title}</h1>${body}
-<a class="btn" href="${SITE}">Back to Baseball Time</a></div></body></html>`;
+<a class="btn" href="${site.url}">Back to ${site.brand}</a></div></body></html>`;
 
 export default async function handler(req, res) {
+  const site = siteOf(req);
+  const page = (title, body) => render(site, title, body);
   const send = (code, html) => {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-store");

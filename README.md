@@ -1,14 +1,19 @@
 # BaseballTime / TourneyScan
 
-Finds 10U through 14U tournaments with open brackets anywhere in Texas and
-Oklahoma (the dashboard measures distance from any city or zip you enter,
-defaulting to Sanger, TX) by scraping NCS
-(playncs.com), PAC (playpacsports.com), the Playbook365 family
+Finds 10U through 14U tournaments with open brackets across Texas, Oklahoma and
+their neighbours (the dashboard measures distance from any city or zip you
+enter, defaulting to Sanger, TX) by scraping NCS (playncs.com, one region page
+per state), PAC (playpacsports.com), the Playbook365 family
 (PPS, 24 Sports, RBI, 2D Sports, Five Tool — one scraper, `playbook365.js`), USSSA
 (usssa.com JSON API, statewide TX + OK), and Perfect Game (the national
 RadGrid schedule, filtered to the states we want) twice
 daily, storing results in Supabase (`tourneyscan` schema in the PickEm
 project), and serving a filterable dashboard from `/site` on Vercel.
+
+`NEARBY_STATES` in `scraper/src/index.js` is the one place the footprint is
+set; NCS, Playbook365 and Perfect Game all take it. **Pass it to every source
+you add** — Perfect Game silently fell back to a Texas-only default for months
+because the call site omitted it.
 
 ## Layout
 
@@ -96,13 +101,14 @@ adding an entry.
   They were drawn on a canvas and saved through the dev server's `/save`
   endpoint; re-run that snippet if the branding changes.
 
-**The national domain is ahead of the data.** Coverage today is 578 Texas and
-46 Oklahoma events against a dozen everywhere else, so national queries will
-land on a board with nothing in range until the scraper widens. Perfect Game
-already downloads the whole national grid and throws away everything outside
-`states`, so unfiltering it is close to free; USSSA needs its full state→ID map
-in `scraper/src/usssa.js`; the rest (PAC, PPS, 24 Sports, RBI, Five Tool) are
-regional operators that will stay Texas-heavy whatever we do.
+**The national domain is ahead of the data.** Coverage is Texas-heavy by an
+order of magnitude, so national queries land on a board with nothing in range
+until the scraper widens. Perfect Game already downloads the whole national grid
+and throws away everything outside `states`, so unfiltering it is close to free;
+NCS has a region page per state and `REGIONS` in `ncs.js` already lists all
+twenty, so it only needs states added to `NEARBY_STATES`; USSSA needs its full
+state→ID map in `scraper/src/usssa.js`; the rest (PAC, PPS, 24 Sports, RBI,
+Five Tool) are regional operators that will stay Texas-heavy whatever we do.
 
 ### Design decisions worth knowing
 
@@ -123,7 +129,21 @@ regional operators that will stay Texas-heavy whatever we do.
   registered events actually published one.
 - **The calendar subscription** covers events matching your current search, not
   your registered list — registered state is device-local, and a webcal URL is
-  fixed at subscribe time, so it could never track it.
+  fixed at subscribe time, so it could never track it. The URL carries every
+  parameter that moves the board, `hide` and `win` included: a floor that only
+  dims rows on screen must not delete them from the calendar.
+
+- **Delisted events are dropped on read, not deleted.** Nothing removes a row
+  when an organizer pulls an event, so the board, the calendar and the alert
+  digest each filter out anything more than three days behind *its own org's*
+  newest `last_seen`. Per-org is the important part: judged against the newest
+  row overall, a single broken parser would erase that organizer from the site
+  three days later. Judged per org, its rows age together and all survive.
+
+- **PostgREST truncates every response at 1000 rows** and says so only in a
+  `Content-Range` header, so an unpaged `.select()` loses data silently as
+  coverage grows. Every query that can exceed that pages explicitly, ordered by
+  a unique tiebreak — paging a non-unique sort drops and duplicates rows.
 
 ## How counts work
 
@@ -161,6 +181,13 @@ stays green.
    `gh secret set RESEND_API_KEY`
 3. Optional overrides, as repo secrets or env vars: `ALERT_FROM` (defaults to
    `alerts@youthbaseballtime.com`), `ALERT_REPLY_TO`, `ALERT_SITE`.
+
+Which domain an alert names is per-signup, not global: the dashboard records its
+own host in the subscription's `filters` blob, and the confirmation email, the
+unsubscribe link, the subject line and the sign-off are all built from it.
+`/confirm` and `/unsubscribe` brand themselves from the `Host` they were opened
+on for the same reason. `ALERT_SITE` is only the fallback for signups made
+before that field existed.
 
 Until the domain is verified Resend rejects every send with a 403 naming the
 domain, so step 1 is not optional. To test before the DNS propagates, set

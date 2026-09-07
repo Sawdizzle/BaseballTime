@@ -12,26 +12,30 @@ export async function fetchHtml(url) {
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
-// Parse NCS-style "Sep 12-13", "Aug 28 - Nov 15", "Jun 7" (no year given), or
-// "Feb 27-28, 2027" (NCS adds the year once the event is in the next year).
+// Parse NCS-style "Sep 12-13", "Aug 28 - Nov 15", "Jun 7" (no year given),
+// "Dec 28 - Jan 3" (runs into the next year), or "Feb 27-28, 2027" (NCS adds
+// the year once the event is in the next year).
 export function parseNcsDates(text, now = new Date()) {
   const t = text.trim();
   const m = t.match(/^([A-Za-z]{3})\w*\s+(\d{1,2})(?:\s*-\s*(?:([A-Za-z]{3})\w*\s+)?(\d{1,2}))?(?:,\s*(\d{4}))?/);
   if (!m) return { start: null, end: null };
   const sm = MONTHS[m[1].toLowerCase()];
+  if (!sm) return { start: null, end: null };
   const sd = parseInt(m[2], 10);
   const em = m[3] ? MONTHS[m[3].toLowerCase()] : sm;
   const ed = m[4] ? parseInt(m[4], 10) : sd;
-  if (!sm) return { start: null, end: null };
+  // An end month earlier than the start month means the event crosses New
+  // Year's, so the end is a year after the start. Any year NCS prints belongs
+  // to the end date, which is the one it had to disambiguate.
+  const wrap = em < sm ? 1 : 0;
   const explicitYear = m[5] ? parseInt(m[5], 10) : null;
-  let year = explicitYear ?? now.getFullYear();
-  let end = new Date(Date.UTC(year, em - 1, ed));
+  const endAt = (y) => new Date(Date.UTC(y + wrap, em - 1, ed));
+  let year = explicitYear != null ? explicitYear - wrap : now.getFullYear() - wrap;
   // No year given: listings are upcoming events, so if it ended >45 days ago
   // it must be next year.
-  if (!explicitYear && end.getTime() < now.getTime() - 45 * 86400e3) { year += 1; end = new Date(Date.UTC(year, em - 1, ed)); }
-  const start = new Date(Date.UTC(em < sm ? year : year, sm - 1, sd)); // em<sm means wraps year; start stays this year
+  if (explicitYear == null && endAt(year).getTime() < now.getTime() - 45 * 86400e3) year += 1;
   const iso = (d) => d.toISOString().slice(0, 10);
-  return { start: iso(start), end: iso(end) };
+  return { start: iso(new Date(Date.UTC(year, sm - 1, sd))), end: iso(endAt(year)) };
 }
 
 // Parse "10/30 - 11/01/2026" or "08-24-2026 - 11-01-2026" (PPS / PAC styles).
@@ -113,11 +117,13 @@ export async function geocodeCity(city, state) {
   return null;
 }
 
-// Extract "City, ST" from strings like "Denton Area, TX", "Richardson/Wylie, TX", "Durant, OK | Venue"
-export function splitCityState(raw) {
+// Extract "City, ST" from strings like "Denton Area, TX", "Richardson/Wylie, TX", "Durant, OK | Venue".
+// A row with no ", ST" gets `fallback` — the caller knows which listing it came
+// from, and assuming Texas for an Oklahoma page would put the pin in the wrong state.
+export function splitCityState(raw, fallback = "TX") {
   const beforePipe = raw.split("|")[0].trim();
   const m = beforePipe.match(/^(.+?),\s*([A-Z]{2})\b/);
-  if (!m) return { city: beforePipe, state: "TX" };
+  if (!m) return { city: beforePipe, state: fallback };
   return { city: m[1].trim(), state: m[2] };
 }
 

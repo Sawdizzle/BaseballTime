@@ -21,13 +21,30 @@ const supabase = DRY
       auth: { persistSession: false },
     });
 
+// PostgREST caps every response at 1000 rows and says so only in Content-Range,
+// so an unpaged .select() silently truncates once a table outgrows that. The
+// events table only ever grows, so page explicitly rather than trusting a
+// single request to return everything.
+const PAGE = 1000;
+async function selectAll(table, columns) {
+  const out = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase.from(table).select(columns).range(from, from + PAGE - 1);
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < PAGE) return out;
+  }
+}
+
 async function main() {
   const results = await Promise.allSettled([
-    scrapeNCS({ log }),
+    scrapeNCS({ states: NEARBY_STATES, log }),
     scrapePAC({ log }),
     scrapePlaybook365({ states: NEARBY_STATES, log }),
     scrapeUSSSA({ log }),
-    scrapePG({ log }),
+    // Without an explicit list this fell back to the function's ["TX"] default,
+    // so Perfect Game contributed nothing outside Texas.
+    scrapePG({ states: NEARBY_STATES, log }),
   ]);
   const events = [];
   for (const [i, r] of results.entries()) {
@@ -40,8 +57,9 @@ async function main() {
   // Geocode + distance, cached per city
   const cache = new Map();
   if (!DRY) {
-    const { data } = await supabase.from("city_geocache").select("*");
-    for (const row of data || []) cache.set(`${row.city}|${row.state}`, { lat: row.lat, lng: row.lng });
+    for (const row of await selectAll("city_geocache", "city, state, lat, lng")) {
+      cache.set(`${row.city}|${row.state}`, { lat: row.lat, lng: row.lng });
+    }
   }
   for (const ev of events) {
     // Some sources (Playbook365) hand us the venue's real coordinates, which
@@ -89,8 +107,7 @@ async function main() {
   if (upErr) throw upErr;
 
   // Snapshot today's counts
-  const { data: dbEvents, error: selErr } = await supabase.from("events").select("id, org, source_event_id");
-  if (selErr) throw selErr;
+  const dbEvents = await selectAll("events", "id, org, source_event_id");
   const idMap = new Map(dbEvents.map((r) => [`${r.org}|${r.source_event_id}`, r.id]));
   const snaps = rows
     .map((e) => ({

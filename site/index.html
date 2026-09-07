@@ -1178,19 +1178,54 @@ const dateLine = (e) => {
 /* ---------------------------------------------------------------------------
    Load
    --------------------------------------------------------------------------- */
+// PostgREST caps every response at 1000 rows and reports the truncation only in
+// a header, so a single .select() quietly loses events as coverage grows. Both
+// queries below are already past half that, so page them.
+const API_PAGE = 1000;
+async function selectAll(build) {
+  const out = [];
+  for (let from = 0; ; from += API_PAGE) {
+    const { data, error } = await build().range(from, from + API_PAGE - 1);
+    if (error) return { error };
+    out.push(...data);
+    if (data.length < API_PAGE) return { data: out };
+  }
+}
+
+// An event that drops out of its organizer's listing stops getting a fresh
+// last_seen, but nothing deletes it, so without this it sits on the board
+// looking live forever.
+//
+// Judged against the newest sighting *for that org*, never the clock. If one
+// org's parser breaks, every one of its rows ages together and none of them
+// pass this test, so the board keeps showing them (stale, with the masthead
+// already saying so) rather than silently losing a whole organizer. Only a row
+// its org has moved on without is dropped.
+const STALE_MS = 3 * 86400e3;
+function dropDelisted(rows) {
+  const newestByOrg = new Map();
+  for (const e of rows) {
+    const t = Date.parse(e.last_seen) || 0;
+    if (t > (newestByOrg.get(e.org) || 0)) newestByOrg.set(e.org, t);
+  }
+  return rows.filter((e) => (Date.parse(e.last_seen) || 0) >= (newestByOrg.get(e.org) || 0) - STALE_MS);
+}
+
 async function load() {
   const today = new Date().toISOString().slice(0, 10);
   // snapshot_baseline is a view: each event's oldest snapshot from the last
-  // 7 days (one row per event, so it never hits the 1000-row API cap).
+  // 7 days, so it is one row per event.
   const [ev, snaps] = await Promise.all([
-    db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date"),
-    db.from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts"),
+    // The secondary sort is not cosmetic: paging a non-unique order lets rows
+    // shift between requests, which drops and duplicates events.
+    selectAll(() => db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date").order("id")),
+    selectAll(() => db.from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts").order("event_id")),
   ]);
   if (ev.error) {
     $("#board").innerHTML = `<div class="empty"><b>Couldn't load events.</b>${esc(ev.error.message)}</div>`;
     return;
   }
-  events = ev.data || [];
+  events = dropDelisted(ev.data || []);
   applyLoc();
   for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
   paintFreshness();
@@ -1329,7 +1364,9 @@ async function paintSpark(el, id, div) {
 /* ---------------------------------------------------------------------------
    Row / card pieces
    --------------------------------------------------------------------------- */
-const orgCity = (e) => [e.org, e.city && `${e.city}${e.state && e.state !== "TX" ? ", " + e.state : ""}`].filter(Boolean).join(" · ");
+// Escapes on the way out: org, city and state come from the scrape, and every
+// caller drops the result straight into innerHTML.
+const orgCity = (e) => esc([e.org, e.city && `${e.city}${e.state && e.state !== "TX" ? ", " + e.state : ""}`].filter(Boolean).join(" · "));
 const isTurf = (e) => /\bturf\b/i.test(`${e.name} ${e.venue || ""}`);
 const whereText = (e) => [e.venue, e.city, e.state].filter(Boolean).join(", ");
 const mapsUrl = (e) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(whereText(e))}`;
@@ -1638,7 +1675,8 @@ async function renderMap() {
       : Math.max(4, Math.min(11, 4 + Math.round((countOf(e, div) / FULL_BRACKET) * 7)));
     const m = L.circleMarker([e.lat, e.lng], { radius: r, color, weight: 1.5, fillColor: color, fillOpacity: .45 });
     m.on("click", () => { selectedId = e.id; });
-    m.bindTooltip(`${e.name} — ${countOf(e, div)} ${isApprox(e, div) ? "all ages" : div}`, { direction: "top" });
+    // Leaflet tooltips take HTML, so the scraped name has to be escaped here too.
+    m.bindTooltip(`${esc(e.name)} — ${countOf(e, div)} ${isApprox(e, div) ? "all ages" : div}`, { direction: "top" });
     // The popup is the only place to save from the map, so it carries the star
     // as well as the link out. Clicks reach the delegated handler on document.
     m.bindPopup(`<div class="pinpop">
@@ -1653,7 +1691,7 @@ async function renderMap() {
   }
   pts.push([loc.lat, loc.lng]);
   L.circleMarker([loc.lat, loc.lng], { radius: 5, color: pin.origin, weight: 2, fillOpacity: 1, fillColor: pin.origin })
-    .bindTooltip(loc.label, { direction: "top" }).addTo(pinLayer);
+    .bindTooltip(esc(loc.label), { direction: "top" }).addTo(pinLayer);
   // Only re-frame when the result set itself changes. Saving an event re-renders
   // the pins, and refitting there would throw away the reader's pan and zoom.
   const sig = withCoords.map((e) => e.id).join(",");
@@ -1775,7 +1813,9 @@ function savedCard(e, registered) {
 function icsHref() {
   const p = new URLSearchParams({
     ages: filters.ages.join(","), miles: String(DIST_STOPS[filters.dist]),
-    min: String(filters.minTeams), orgs: filters.orgs.join(","),
+    // min only hides anything when hideBelow is on, exactly as on the board.
+    min: String(filters.minTeams), hide: filters.hideBelow ? "1" : "0",
+    win: String(filters.win), orgs: filters.orgs.join(","),
   });
   if (isFinite(loc.lat)) { p.set("lat", loc.lat.toFixed(4)); p.set("lng", loc.lng.toFixed(4)); }
   return `/calendar.ics?${p}`;
@@ -2069,9 +2109,15 @@ function render() {
   store.set("orgs", filters.orgs);
 
   renderFilterChips();
+  // What an email alert watches. It has to carry every parameter that moves the
+  // board, or the digest ends up describing a different search than the one on
+  // screen: hideBelow decides whether min hides anything at all, and win bounds
+  // how far ahead a "new" event counts. site is here because the emails are
+  // sent from a job that has no request to read a hostname off.
   currentFilters = {
-    label: loc.label, lat: loc.lat, lng: loc.lng,
-    miles: DIST_STOPS[filters.dist], ages: filters.ages, min: filters.minTeams, orgs: filters.orgs,
+    label: loc.label, lat: loc.lat, lng: loc.lng, site: SITE.host,
+    miles: DIST_STOPS[filters.dist], ages: filters.ages, orgs: filters.orgs,
+    min: filters.minTeams, hideBelow: filters.hideBelow, win: filters.win,
   };
   const savedCount = [...saved.keys()].filter((id) => events.some((e) => e.id === id)).length;
   $("#navSaved").textContent = savedCount || "";
@@ -2159,6 +2205,16 @@ $("#fReset").addEventListener("click", () => { draft = JSON.parse(JSON.stringify
 $("#fApply").addEventListener("click", () => { filters = draft; visible = PAGE; sheet.close(); render(); });
 $("#sheetClose").addEventListener("click", () => sheet.close());
 $("#changeBtn").addEventListener("click", () => openSheet());
+
+// The sheet is a <form method="dialog">, so Enter in this field triggers
+// implicit submission: the dialog closes and the whole draft is discarded.
+// Typing a zip and pressing Enter is the obvious thing to do, so it has to set
+// the location instead.
+$("#fLoc").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter") return;
+  ev.preventDefault();
+  $("#fLocSet").click();
+});
 
 $("#fLocSet").addEventListener("click", async () => {
   const q = $("#fLoc").value.trim(), out = $("#fLocOut");
