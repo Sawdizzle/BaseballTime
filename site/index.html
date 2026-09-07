@@ -49,10 +49,37 @@
   {"@type":"Organization","@id":"https://youthbaseballtime.com/#org","name":"Baseball Time","url":"https://youthbaseballtime.com/","logo":"https://youthbaseballtime.com/icon-512.png","email":"info@youthbaseballtime.com"},
   {"@type":"WebSite","@id":"https://youthbaseballtime.com/#site","name":"Baseball Time","url":"https://youthbaseballtime.com/","publisher":{"@id":"https://youthbaseballtime.com/#org"},"inLanguage":"en-US"}
 ]}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow+Semi+Condensed:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<!-- The two weights the board actually leans on, fetched before the parser
+     reaches them. Everything else swaps in as it arrives. -->
+<link rel="preload" href="fonts/bc-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/bsc-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  /* ------------------------------------------------------------------
+     Fonts are served from this origin, not fonts.googleapis.com.
+
+     That stylesheet was a render-blocking request to a third party: DNS,
+     TLS and a round trip to one origin for the CSS and another for the
+     files, all before the browser could paint anything — the single
+     biggest thing standing between a phone at a ballfield and the board.
+     Self-hosting also drops the two preconnects and stops handing every
+     reader's IP to a third party for a font.
+
+     Seven latin-subset files, ~105 KB, and only weights the CSS below
+     actually asks for. The 500s were never used, and IBM Plex Mono was a
+     whole family for one 12px timestamp, so --mono is the system stack now.
+
+     vercel.json serves /fonts/* as immutable for a year, so re-exporting from
+     Google Fonts means giving the file a NEW NAME (bc-700-v2.woff2) — an
+     overwrite would not reach anyone who already has the old one.
+     ------------------------------------------------------------------ */
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/bc-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/bc-700.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(fonts/bc-800.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/bsc-400.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/bsc-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/bsc-700.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(fonts/bsc-800.woff2) format("woff2"); }
+
   /* ------------------------------------------------------------------
      "Scoreboard" palette. Dark, condensed numerals: the board is meant to
      read like an outfield scoreboard, so the numbers carry the page and
@@ -116,7 +143,9 @@
 
     --cond: "Barlow Condensed", "Barlow Semi Condensed", system-ui, sans-serif;
     --ui: "Barlow Semi Condensed", system-ui, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    /* The map's date stamp is the only mono text on the site; a whole webfont
+       family for one line is not worth the request. */
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
 
   /* ------------------------------------------------------------------
@@ -639,6 +668,21 @@
   .sfoot .btn { width: auto; padding: 13px 26px; font-size: 17px; }
   .sfoot .note { margin-left: auto; font-size: 13.5px; color: var(--text-4); }
 
+  /* ---------------- Loading skeleton ---------------- */
+  /* Shown only on a first visit, when there is no cached board to paint. */
+  .skel { margin-top: 30px; }
+  .skelrow, .skelhero {
+    background: linear-gradient(90deg, transparent 0%, var(--row-hover) 40%, var(--row-hover) 60%, transparent 100%);
+    background-size: 200% 100%;
+    animation: skel 1.4s ease-in-out infinite;
+  }
+  .skelrow { height: 74px; border-bottom: 1px solid var(--border-row); }
+  /* Same box the hero occupies, so the card does not shove the board down when
+     it arrives. */
+  .skelhero { height: 148px; border: 1px solid var(--border-hero); border-radius: 12px; }
+  @media (max-width: 760px) { .skelhero { height: 196px; } }
+  @keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
   /* ---------------- Empty states, footer, misc ---------------- */
   .empty { margin: 50px auto; max-width: 460px; text-align: center; color: var(--text-3); font-size: 15px; }
   .empty b { display: block; font-family: var(--cond); font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
@@ -943,11 +987,65 @@
   </form>
 </dialog>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: "tourneyscan" } });
+
+/* ---------------------------------------------------------------------------
+   PostgREST, directly.
+
+   supabase-js was 54 KB from a third-party CDN that had to be fetched, parsed
+   and constructed before the first query could even be built — a whole extra
+   origin, connection and round trip in front of the only thing the board is
+   waiting for. Everything this page asks of it is a GET with a handful of
+   filters plus one RPC POST, which is the forty lines below. The chainable
+   shape is kept so the call sites read the same.
+   --------------------------------------------------------------------------- */
+const REST = `${SUPABASE_URL}/rest/v1`;
+const AUTH = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+const SCHEMA = "tourneyscan";
+
+function from(table) {
+  const params = new URLSearchParams();
+  const sort = [];
+  const send = async (headers) => {
+    if (sort.length) params.set("order", sort.join(","));
+    try {
+      const r = await fetch(`${REST}/${table}?${params}`, { headers: { ...AUTH, "Accept-Profile": SCHEMA, ...headers } });
+      if (!r.ok) return { error: new Error(`${r.status} ${(await r.text()).slice(0, 160)}`) };
+      return { data: await r.json() };
+    } catch (err) {
+      return { error: err };
+    }
+  };
+  const q = {
+    select(cols) { params.set("select", cols); return q; },
+    eq(col, v) { params.append(col, `eq.${v}`); return q; },
+    gte(col, v) { params.append(col, `gte.${v}`); return q; },
+    overlaps(col, arr) { params.append(col, `ov.{${arr.join(",")}}`); return q; },
+    order(col) { sort.push(`${col}.asc`); return q; },
+    range(a, b) { return send({ Range: `${a}-${b}` }); },
+    get() { return send({}); },
+  };
+  return q;
+}
+
+async function rpc(fn, body) {
+  try {
+    const r = await fetch(`${REST}/rpc/${fn}`, {
+      method: "POST",
+      headers: { ...AUTH, "Content-Type": "application/json", "Content-Profile": SCHEMA },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) return {};
+    // PostgREST hands back the Postgres error as JSON; the signup form reads
+    // .message to tell a rejected address apart from a broken request.
+    const j = await r.json().catch(() => ({}));
+    return { error: new Error(j.message || j.hint || `Request failed (${r.status})`) };
+  } catch (err) {
+    return { error: err };
+  }
+}
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -1211,26 +1309,78 @@ function dropDelisted(rows) {
   return rows.filter((e) => (Date.parse(e.last_seen) || 0) >= (newestByOrg.get(e.org) || 0) - STALE_MS);
 }
 
+// Named rather than "*". The five columns left out — event_status,
+// distance_miles, has_14u, source_event_id, first_seen — were 36 KB per load
+// that nothing on this page ever read. class_counts was another 72 KB, 16% of
+// the response, and only the hero card wants it, so it is fetched for that one
+// event instead (see classTagHTML).
+const EVENT_COLS = "id,org,name,city,state,venue,lat,lng,start_date,end_date," +
+  "divisions,division_counts,teams_14u,total_registered,cost,event_url,last_seen";
+
+/* The board used to sit empty until Supabase answered, which on a phone meant
+   the first thing on screen was the footer's small print floating up to fill
+   the page. Two things fix that: a returning reader gets their last board back
+   instantly, and a first-time reader gets skeleton rows instead of nothing.
+
+   Painting from cache is honest here because the masthead already carries the
+   scrape time, and it is drawn from the cached rows — so a stale board says
+   how stale it is, and correct itself seconds later when the fetch lands. */
+const CACHE_KEY = "events.v1";
+const CACHE_MAX_MS = 24 * 3600e3;
+
+function readCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    if (!c || !Array.isArray(c.events) || Date.now() - c.at > CACHE_MAX_MS) return null;
+    return c.events;
+  } catch { return null; }
+}
+function writeCache(rows) {
+  // Quietly skipped when the quota says no; the cache is an optimisation.
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), events: rows })); } catch {}
+}
+
 async function load() {
   const today = new Date().toISOString().slice(0, 10);
+
+  const cached = readCache();
+  if (cached?.length) {
+    events = dropDelisted(cached);
+    applyLoc();
+    paintFreshness();
+    render();
+  } else {
+    $("#heroWrap").innerHTML = `<div class="skelhero" aria-hidden="true"></div>`;
+    $("#board").innerHTML = skeletonHTML();
+  }
+
   // snapshot_baseline is a view: each event's oldest snapshot from the last
   // 7 days, so it is one row per event.
   const [ev, snaps] = await Promise.all([
     // The secondary sort is not cosmetic: paging a non-unique order lets rows
     // shift between requests, which drops and duplicates events.
-    selectAll(() => db.from("events").select("*").overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date").order("id")),
-    selectAll(() => db.from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts").order("event_id")),
+    selectAll(() => from("events").select(EVENT_COLS).overlaps("divisions", DIVISIONS).gte("end_date", today).order("start_date").order("id")),
+    selectAll(() => from("snapshot_baseline").select("event_id, snapshot_date, teams_14u, division_counts").order("event_id")),
   ]);
   if (ev.error) {
-    $("#board").innerHTML = `<div class="empty"><b>Couldn't load events.</b>${esc(ev.error.message)}</div>`;
+    // A cached board beats an error page, so only take over an empty screen.
+    if (!events.length) {
+      $("#board").innerHTML = `<div class="empty"><b>Couldn't load events.</b>${esc(ev.error.message)}</div>`;
+    }
     return;
   }
+  writeCache(ev.data || []);
   events = dropDelisted(ev.data || []);
   applyLoc();
   for (const s of snaps.data || []) if (s.snapshot_date < today) baselines.set(s.event_id, s);
   paintFreshness();
   render();
 }
+
+// Rows at the real row's height, so the board does not jump when they are
+// replaced. Hidden from screen readers, which get the live region instead.
+const skeletonHTML = () =>
+  `<div class="skel" aria-hidden="true">${'<div class="skelrow"></div>'.repeat(6)}</div>`;
 
 function paintFreshness() {
   const latest = events.reduce((m, e) => Math.max(m, Date.parse(e.last_seen || 0)), 0);
@@ -1259,7 +1409,9 @@ function paintFreshness() {
       + `<span class="short">${esc(stale ? "!" + short : short)}</span>`;
   };
   show();
-  setInterval(show, 60000);
+  // load() paints twice when it has a cache to show first; one ticker is enough.
+  clearInterval(paintFreshness.tick);
+  paintFreshness.tick = setInterval(show, 60000);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1325,11 +1477,10 @@ function summaryText(f) {
    --------------------------------------------------------------------------- */
 function history(id) {
   if (historyCache.has(id)) return historyCache.get(id);
-  const job = db.from("registration_snapshots")
+  const job = from("registration_snapshots")
     .select("snapshot_date, division_counts, teams_14u, total_registered")
     .eq("event_id", id).order("snapshot_date")
-    .then((r) => r.data || [])
-    .catch(() => []);
+    .get().then((r) => r.data || []);
   historyCache.set(id, job);
   return job;
 }
@@ -1425,7 +1576,10 @@ function renderBoard() {
 
   const best = bestBet(rows);
   wrap.innerHTML = best ? heroHTML(best) : "";
-  if (best) paintSpark(wrap.querySelector("[data-spark]"), best.id, primaryAge(best));
+  if (best) {
+    paintSpark(wrap.querySelector("[data-spark]"), best.id, primaryAge(best));
+    paintClassTag(wrap.querySelector("[data-classtag]"), best, primaryAge(best));
+  }
 
   const page = rows.slice(0, visible);
   const rest = rows.length - page.length;
@@ -1484,23 +1638,46 @@ function emptyBoardHTML() {
     </div></div>`;
 }
 
+// The hero's per-age tags, which is what shows while the class split is still
+// in flight — and what stays when there is no split worth drawing.
+function ageTagsHTML(e) {
+  return DIVISIONS.filter((d) => (e.divisions || []).includes(d)).slice(0, 3).map((d) => {
+    const c = exactCount(e, d);
+    return `<span class="tag">${d} ${c == null ? "≈" : c}</span>`;
+  }).join("");
+}
+
+// A single age can hold several skill classes with very different numbers
+// (14U AA 6, Open 3), and the age total alone would mislead. That detail lives
+// in class_counts, which is 72 KB across the whole board and wanted by exactly
+// this one card, so it is fetched per event the way sparkline history is.
+// Renders the age tags first and upgrades in place, so nothing moves unless
+// there is genuinely a split to show.
+const classCache = new Map();
+function classCounts(id) {
+  if (!classCache.has(id)) {
+    classCache.set(id, from("events").select("class_counts").eq("id", id).get()
+      .then((r) => r.data?.[0]?.class_counts || {}));
+  }
+  return classCache.get(id);
+}
+async function paintClassTag(el, e, div) {
+  if (!el || !div) return;
+  const classes = (await classCounts(e.id))[div] || {};
+  const names = Object.keys(classes);
+  if (names.length < 2 || !el.isConnected) return;
+  el.innerHTML = `<span class="tag">${div} ${names.sort((x, y) => classes[y] - classes[x])
+    .map((c) => `${esc(c)} ${classes[c]}`).join(" · ")}</span>`;
+}
+
 function heroHTML(e) {
   const div = primaryAge(e);
   const r = dayRange(e);
   const approx = isApprox(e, div);
   const n = countOf(e, div);
   const delta = weekDelta(e, div);
-  // A single age can hold several skill classes with very different numbers
-  // (14U AA 6, Open 3); the age total alone would mislead.
-  const classes = e.class_counts?.[div] || {};
-  const classNames = Object.keys(classes);
-  const classTag = classNames.length > 1
-    ? `<span class="tag">${div} ${classNames.sort((x, y) => classes[y] - classes[x]).map((c) => `${esc(c)} ${classes[c]}`).join(" · ")}</span>`
-    : DIVISIONS.filter((d) => (e.divisions || []).includes(d)).slice(0, 3).map((d) => {
-        const c = exactCount(e, d);
-        return `<span class="tag">${d} ${c == null ? "≈" : c}</span>`;
-      }).join("");
-  const tags = [isTurf(e) ? `<span class="tag turf">TURF</span>` : "", wxTag(e), classTag].filter(Boolean).join("");
+  const tags = [isTurf(e) ? `<span class="tag turf">TURF</span>` : "", wxTag(e),
+    `<span data-classtag>${ageTagsHTML(e)}</span>`].filter(Boolean).join("");
   const soon = daysUntil(e.start_date) <= 7;
   return `<span class="eyebrow" style="display:block;margin-bottom:10px">${soon ? "Best bet this weekend" : "Best bet coming up"}</span>
     <button class="hero" type="button" data-id="${esc(e.id)}">
@@ -1597,7 +1774,11 @@ function renderDetail() {
     </div>
     <p class="alertnote">Tap Save again to cycle watching → registered → off.</p>`;
   rail.dataset.open = String(detailOpen);
-  if (e.lat != null) miniMap($("#railMap"), e);
+  // The rail's mini-map means the *board* pulls Leaflet and OSM tiles — 38 KB
+  // from a third CDN plus a dozen tile requests — even though the reader came
+  // for the list. Waiting for idle lets the events query, the fonts and the
+  // board's own paint go first; the map fills in a moment later.
+  if (e.lat != null) whenIdle(() => miniMap($("#railMap"), e));
 }
 
 /* ---------------------------------------------------------------------------
@@ -1707,6 +1888,9 @@ function mapStampText() {
   const f = (d) => `${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
   return end ? `${f(start)} – ${f(end)}, ${end.getFullYear()}` : `${f(start)}, ${start.getFullYear()} – all dates`;
 }
+// Safari still has no requestIdleCallback.
+const whenIdle = (fn) => (window.requestIdleCallback || ((f) => setTimeout(f, 250)))(fn, { timeout: 2000 });
+
 let railMapObj = null;
 async function miniMap(el, e) {
   if (!el) return;
@@ -1831,7 +2015,7 @@ function wireAlerts() {
     btn.disabled = true;
     note.className = "alertnote";
     note.textContent = "Signing you up…";
-    const { error } = await db.rpc("request_alerts", {
+    const { error } = await rpc("request_alerts", {
       p_email: email, p_filters: currentFilters, p_frequency: $("#alertFreq").value,
     });
     btn.disabled = false;
@@ -2418,12 +2602,24 @@ $("#addPlayer").addEventListener("submit", (ev) => {
 
 // Shadow under the filter bar only once it is actually stuck to the top, so it
 // reads as a layer over the board rather than a permanent divider.
+//
+// A sentinel above the bar rather than a scroll listener: getBoundingClientRect
+// on every scroll event forces a synchronous layout, which is the one thing
+// guaranteed to make a long board feel bad on a phone.
 (function stickyBar() {
   const bar = $("#filterbar");
-  const sync = () => bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0.5);
-  addEventListener("scroll", sync, { passive: true });
-  addEventListener("resize", sync);
-  sync();
+  // In normal flow, immediately above the bar — so it leaves the viewport at
+  // exactly the scroll position where the sticky bar reaches the top. Absolute
+  // positioning would anchor it to the top of the page and fire a masthead too
+  // early.
+  const mark = document.createElement("div");
+  mark.setAttribute("aria-hidden", "true");
+  mark.style.cssText = "height:1px;margin-bottom:-1px";
+  bar.parentNode.insertBefore(mark, bar);
+  new IntersectionObserver(
+    ([entry]) => bar.classList.toggle("stuck", !entry.isIntersecting),
+    { threshold: 0 }
+  ).observe(mark);
 })();
 
 applySEO();

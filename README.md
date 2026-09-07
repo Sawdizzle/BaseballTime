@@ -23,6 +23,10 @@ because the call site omitted it.
 - `.github/workflows/scrape.yml` — runs the scraper at 7 AM and 7 PM Central,
   plus manual runs via the Actions tab (workflow_dispatch).
 - `site/` — static dashboard (no build step). Vercel Root Directory = `site`.
+  Fonts are self-hosted in `site/fonts/` (seven latin-subset woff2 files);
+  `vercel.json` serves them immutable for a year, so a re-export needs a new
+  filename, not an overwrite. `site/icon.png` is the 2048px master and is
+  excluded from deploys by `.vercelignore` — it is a source file, not an asset.
   Distance is computed in the browser from each event's lat/lng and the
   user's chosen location (zip via Zippopotam, city via Open-Meteo); the
   scraper's `distance_miles` column is Sanger-based and only used for the
@@ -34,6 +38,29 @@ because the call site omitted it.
   and icon-512-maskable (78% inset on flat navy for Android's crop), then
   bump `CACHE` in `sw.js`.
 
+## What the page costs to open
+
+The board is the only thing a reader is waiting for, so nothing else is allowed
+in front of it.
+
+- **No third-party JavaScript on the critical path.** supabase-js was 54 KB from
+  a CDN that had to load, parse and construct a client before the first query
+  could be built. The page speaks to PostgREST directly (`from()` / `rpc()` at
+  the top of the app script) — the same chainable shape, about forty lines.
+- **Only the columns the page reads.** `select("*")` shipped 443 KB per load, a
+  third of it columns nothing rendered. `EVENT_COLS` names the seventeen that
+  are used; `class_counts` is 72 KB wanted by one card, so the hero fetches it
+  for its own event the way sparkline history does.
+- **Fonts come from this origin.** The Google Fonts stylesheet was a
+  render-blocking request to a third party, which then pointed at a fourth.
+- **A returning reader gets their board back before the network answers.** The
+  last response is kept in `localStorage` and painted immediately; the masthead's
+  scrape time is drawn from those same rows, so a stale board says so. A first
+  visit gets skeleton rows — the page used to sit empty, which on a phone meant
+  the first thing on screen was the footer's small print.
+- **Leaflet and its tiles wait for idle**, even on the board, where the detail
+  rail wants a mini-map.
+
 ## The dashboard
 
 `site/index.html` is the whole front end — one file, no build step, same as
@@ -44,8 +71,10 @@ before. It runs four client-side views off a single Supabase load:
   detail rail. The rail is a permanent column above 1100px and a tap-to-open
   bottom sheet below it.
 - **Map** — the same filtered set as pins, plus a nearest-first list. Leaflet is
-  loaded from a CDN only when the view is first opened, so the board never pays
-  for it.
+  loaded from a CDN only once something actually needs it. That is not only the
+  Map view: above 1100px the detail rail carries a mini-map, so the board pulls
+  it too — deferred to `requestIdleCallback` there, so the list and its data go
+  first and the map fills in behind them.
 - **Saved** — none → watching → registered, kept per device. Registered rows get
   a countdown, directions and season totals.
 - **Players** — unchanged logic, restyled.
