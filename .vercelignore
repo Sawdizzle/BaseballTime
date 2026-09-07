@@ -1,0 +1,4 @@
+# The 2048px master the icons are exported from. It lives in site/ so the
+# export step is one folder, but nothing on the site references it and
+# shipping it put 5 MB in every deploy.
+site/icon.png
