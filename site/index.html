@@ -118,15 +118,20 @@
     --text: #e8eef6;
     --text-2: #9fb5cd;
     --text-3: #7c93ae;
-    --text-4: #5b7290;
+    /* 4.5:1 against every ground it lands on. The old #5b7290 measured 3.66
+       on cards, and this is 12-13px text — eyebrows, month tallies, the
+       footer's whole explanation of what the counts mean. */
+    --text-4: #6f86a4;
 
     --track: #1b2839;
     --track-2: #16202f;
     --org-link: #2f7fc4;
 
     /* Below-minimum rows step back. Fading toward white costs more legibility
-       than fading toward black, so light mode dims less. */
-    --dim: .55;
+       than fading toward black, so light mode dims less. Both stop at the
+       point where the dimmed text still clears 4.5:1 — a row under your floor
+       is meant to recede, not to become unreadable. */
+    --dim: .66;
     --row-hover: rgba(142, 200, 239, .04);
     --row-sel: rgba(142, 200, 239, .07);
     --star-reg-bg: rgba(26, 122, 77, .18);
@@ -188,13 +193,13 @@
     --text: #0b1220;
     --text-2: #33475e;
     --text-3: #4a5f76;
-    --text-4: #62788f;
+    --text-4: #5b7085;
 
     --track: #cfe0ee;
     --track-2: #cfe0ee;
     --org-link: #2f7fc4;
 
-    --dim: .7;
+    --dim: .77;
     --row-hover: rgba(31, 111, 184, .06);
     --row-sel: rgba(31, 111, 184, .10);
     --star-reg-bg: rgba(31, 122, 77, .12);
@@ -746,13 +751,21 @@
     .fresh .short { display: inline; }
     .masthead .coffee .lbl { display: none; }
     .masthead .coffee { width: 32px; height: 32px; padding: 0; gap: 0; justify-content: center; font-size: 15px; }
+    /* Six controls in one row put Share hard against the right edge on a
+       360px phone, with its rounded end clipped. */
+    header.masthead { gap: 8px; }
+    .masthead h1 { font-size: 19px; letter-spacing: .04em; }
+    .masthead .pill { padding: 7px 11px; }
     /* One scrollable row of chips, with "All filters" pinned beside it. */
     .filterbar { padding: 10px 12px; gap: 8px; flex-wrap: nowrap; }
     .filterbar .eyebrow { display: none; }
     .fchips {
       flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-      /* Fades the clipped chip so the row reads as scrollable rather than broken. */
-      mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+      /* Fades the clipped chip so the row reads as scrollable rather than
+         broken. 22px was narrower than a chip's own padding, so a chip was
+         cut mid-word at full opacity and just looked wrong. */
+      mask-image: linear-gradient(to right, #000 calc(100% - 46px), transparent);
+      padding-right: 10px;
     }
     .fchips::-webkit-scrollbar { display: none; }
     #changeBtn { flex: none; }
@@ -761,8 +774,11 @@
     .rail { padding: 18px 16px 24px; }
 
     /* Hero collapses to two rows: date + title, then the count. */
-    .hero { grid-template-columns: 72px 1fr; gap: 14px; padding: 16px 16px 18px; }
-    .hero .date .dd { font-size: 42px; }
+    /* "12–13" needs more than 72px at 42px type, and broke after the dash —
+       two stacked numbers as the first thing on the page. */
+    .hero { grid-template-columns: auto 1fr; gap: 14px; padding: 16px 16px 18px; }
+    .hero .date { min-width: 62px; }
+    .hero .date .dd { font-size: 38px; white-space: nowrap; }
     .hero .title { font-size: 26px; }
     .hero .meta { font-size: 14.5px; }
     .hero .right { grid-column: 1 / -1; text-align: left; display: flex; align-items: flex-end; gap: 14px; min-width: 0; }
@@ -948,7 +964,10 @@
       <div style="flex:1 1 220px">
         <span class="eyebrow" style="display:block;margin-bottom:8px">Measure from</span>
         <div style="display:flex;gap:8px">
-          <input type="text" id="fLoc" placeholder="City or zip" maxlength="60" autocomplete="off" style="flex:1">
+          <input type="text" id="fLoc" placeholder="City or zip" maxlength="60" autocomplete="off"
+                 aria-label="Measure distance from this city or zip code" style="flex:1">
+          <button class="btn out" type="button" id="fLocHere" title="Use my location"
+                  aria-label="Use my current location" style="width:auto;padding:10px 12px">◎</button>
           <button class="btn out" type="button" id="fLocSet" style="width:auto;padding:10px 14px">Set</button>
         </div>
         <p class="alertnote" id="fLocOut"></p>
@@ -958,7 +977,8 @@
           <span class="eyebrow">Distance</span>
           <span class="distval" id="fDistVal"></span>
         </div>
-        <input type="range" id="fDist" min="0" max="17" step="1">
+        <input type="range" id="fDist" min="0" max="17" step="1"
+               aria-label="Distance from your location" aria-valuetext="">
         <div class="ticks"><span>10</span><span>100</span><span>500</span></div>
       </div>
     </div>
@@ -1582,7 +1602,16 @@ async function paintSpark(el, id, div) {
 const orgCity = (e) => esc([e.org, e.city && `${e.city}${e.state && e.state !== "TX" ? ", " + e.state : ""}`].filter(Boolean).join(" · "));
 const isTurf = (e) => /\bturf\b/i.test(`${e.name} ${e.venue || ""}`);
 const whereText = (e) => [e.venue, e.city, e.state].filter(Boolean).join(", ");
-const mapsUrl = (e) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(whereText(e))}`;
+// Only about a third of events publish a venue. With one, search by name and
+// Maps lands on the field. Without one, a text search for "Denton, TX" drops
+// you downtown, so hand Maps the coordinates we hold instead — for the sources
+// that give venue-level coordinates that is the actual site, and for the rest
+// it is the same city centroid the distance is measured from.
+const mapsUrl = (e) => e.venue
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(whereText(e))}`
+  : e.lat != null && e.lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${e.lat}%2C${e.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(whereText(e))}`;
 
 function metaLine(e) {
   const wx = wxText(e);
@@ -1680,11 +1709,18 @@ function renderBoard() {
 // nearest among ties — and only fall back to long-running events if that is
 // genuinely all there is.
 const isWeekendEvent = (e) => daysBetween(e.start_date, e.end_date || e.start_date) <= WX_MAX_LEN;
+// An org that publishes no per-age split is judged on its all-ages total, so a
+// PAC event with forty teams across every age clears a 3-team 14U floor even
+// with nobody in 14U at all. Fine for a row that is marked with a ≈; wrong for
+// the one card the page puts its name behind. Exact counts get first refusal.
 function bestBet(rows) {
   const q = rows.filter(qualifies);
   const bySoonestThenNearest = (a, b) =>
     (a.start_date || "").localeCompare(b.start_date || "") || (a.miles ?? 1e9) - (b.miles ?? 1e9);
-  return q.filter(isWeekendEvent).sort(bySoonestThenNearest)[0] || q.sort(bySoonestThenNearest)[0];
+  const pick = (pool) => pool.filter(isWeekendEvent).sort(bySoonestThenNearest)[0]
+    || pool.slice().sort(bySoonestThenNearest)[0];
+  const exact = q.filter((e) => !isApprox(e, primaryAge(e)));
+  return pick(exact) || pick(q);
 }
 
 function emptyBoardHTML() {
@@ -1821,7 +1857,9 @@ function renderDetail() {
       <div class="spec"><span class="k">Surface</span><span class="v${isTurf(e) ? " turf" : ""}">${isTurf(e) ? "Turf" : "Not stated"}</span></div>
       <div class="spec"><span class="k">Forecast</span><span class="v">${wx || "—"}</span></div>
       <div class="spec"><span class="k">Distance</span><span class="v">${e.miles != null ? e.miles + " mi" : "—"}</span></div>
+      <div class="spec"><span class="k">Venue</span><span class="v">${e.venue ? esc(e.venue) : "Not published"}</span></div>
     </div>
+    ${e.venue ? "" : `<p class="alertnote">${esc(e.org)} hasn't published the field for this one, so Directions goes to the town, not the park. The organizer's page usually has it.</p>`}
     ${counts.length ? `<span class="eyebrow" style="display:block;margin:18px 0 6px">Brackets filling</span>
       <div class="brackets">${counts.map((x) => `
         <div class="brk${x.d === div ? " mine" : ""}">
@@ -1940,7 +1978,10 @@ async function renderMap() {
   const sig = withCoords.map((e) => e.id).join(",");
   if (sig !== mapFitSig) {
     mapFitSig = sig;
-    if (pts.length) bigMap.fitBounds(L.latLngBounds(pts).pad(.12));
+    // padding in pixels, and a zoom ceiling: fitBounds only picks whole zoom
+    // levels, so padding the bounds themselves could drop a whole step and
+    // frame a 50-mile search as a thousand-mile view.
+    if (pts.length) bigMap.fitBounds(L.latLngBounds(pts), { padding: [28, 28], maxZoom: 12 });
   }
   setTimeout(() => bigMap.invalidateSize(), 0);
 }
@@ -2504,6 +2545,9 @@ function paintSheet() {
   $("#fOrgsLbl").textContent = draft.orgs.length === ORGS.length ? `Orgs · all ${ORGS.length} on` : `Orgs · ${draft.orgs.length} of ${ORGS.length}`;
   $("#fLoc").value = loc.label;
   $("#fDist").value = draft.dist;
+  // The slider's value is an index into DIST_STOPS; without this a screen
+  // reader announces "6" rather than "50 miles".
+  $("#fDist").setAttribute("aria-valuetext", `${DIST_STOPS[draft.dist]} miles`);
   $("#fDist").style.setProperty("--fill", `${(draft.dist / (DIST_STOPS.length - 1)) * 100}%`);
   $("#fDistVal").textContent = `${DIST_STOPS[draft.dist]} mi`;
   $("#fMinVal").textContent = draft.minTeams;
@@ -2545,6 +2589,38 @@ $("#fLoc").addEventListener("keydown", (ev) => {
   if (ev.key !== "Enter") return;
   ev.preventDefault();
   $("#fLocSet").click();
+});
+
+// Asking for a city when the phone already knows where it is. There is no
+// key-free reverse geocoder worth adding a dependency for, so the label says
+// what we actually know rather than inventing a place name.
+$("#fLocHere").addEventListener("click", () => {
+  const out = $("#fLocOut");
+  if (!navigator.geolocation) {
+    out.className = "alertnote err";
+    out.textContent = "This browser can't share a location.";
+    return;
+  }
+  out.className = "alertnote";
+  out.textContent = "Asking your browser…";
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      loc = { label: "My location", lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4) };
+      store.set("loc", loc);
+      applyLoc();
+      $("#fLoc").value = loc.label;
+      out.className = "alertnote ok";
+      out.textContent = `Using ${loc.lat}, ${loc.lng}`;
+      paintSheet();
+    },
+    (err) => {
+      out.className = "alertnote err";
+      out.textContent = err.code === err.PERMISSION_DENIED
+        ? "Location permission denied — type a city or zip instead."
+        : "Couldn't get a location. Type a city or zip instead.";
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+  );
 });
 
 $("#fLocSet").addEventListener("click", async () => {
@@ -2713,6 +2789,28 @@ $("#addPlayer").addEventListener("submit", (ev) => {
   let seen = false;
   try { seen = localStorage.getItem("installSeen") === "1"; } catch {}
   if (standalone || seen) return;
+
+  // It used to appear 2.5s into a first visit, as a fixed bar over the rows
+  // the reader had just arrived to read — asking someone to install an app
+  // they have not looked at yet. Now it waits for a second visit AND for some
+  // sign this one is going somewhere: a scroll, or a tap on the board.
+  let visits = 0;
+  try {
+    visits = (+localStorage.getItem("visits") || 0) + 1;
+    localStorage.setItem("visits", String(visits));
+  } catch {}
+  const earned = new Promise((go) => {
+    if (visits < 2) return;                       // never on a first visit
+    const fire = () => { cleanup(); go(); };
+    const onScroll = () => { if (window.scrollY > 400) fire(); };
+    const onTap = (e) => { if (e.target.closest("[data-id], .fchip, nav.views button, .tabbar button")) fire(); };
+    const cleanup = () => {
+      removeEventListener("scroll", onScroll);
+      removeEventListener("click", onTap, true);
+    };
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("click", onTap, true);
+  });
   const box = $("#install"), btn = $("#installBtn"), steps = $("#installSteps");
   const markSeen = () => { try { localStorage.setItem("installSeen", "1"); } catch {} };
   const show = () => { box.hidden = false; markSeen(); };
@@ -2727,7 +2825,7 @@ $("#addPlayer").addEventListener("submit", (ev) => {
     steps.innerHTML = isSafari
       ? `Tap <kbd>Share</kbd> then <kbd>Add to Home Screen</kbd>.`
       : `Open this page in <kbd>Safari</kbd>, tap <kbd>Share</kbd>, then <kbd>Add to Home Screen</kbd>.`;
-    setTimeout(show, 2500);
+    earned.then(show);
     return;
   }
   let deferred = null;
@@ -2736,7 +2834,7 @@ $("#addPlayer").addEventListener("submit", (ev) => {
     deferred = e;
     steps.textContent = "Works like an app, opens full screen.";
     btn.hidden = false;
-    show();
+    earned.then(show);
   });
   btn.addEventListener("click", async () => {
     if (!deferred) return;
