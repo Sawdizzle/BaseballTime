@@ -38,21 +38,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Baseball Time">
 <link rel="manifest" href="/app.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <!-- Baseline structured data. Bing and the social scrapers are weak at running
      JavaScript, so the national version ships in the markup and site config
      rewrites it for the Texas domain. -->
-<script type="application/ld+json" id="ldEvents">{"@context":"https://schema.org","@type":"ItemList","itemListElement":[]}</script>
+<!-- No ldEvents element here on purpose. A landing page has api/page.js fill
+     one in with real tournaments; on the plain home page the client creates it
+     once it has data. Shipping an empty ItemList told every crawler that does
+     not run JavaScript that the site lists zero events. -->
 <script type="application/ld+json" id="ldSite">{"@context":"https://schema.org","@graph":[
   {"@type":"Organization","@id":"https://youthbaseballtime.com/#org","name":"Baseball Time","url":"https://youthbaseballtime.com/","logo":"https://youthbaseballtime.com/icon-512.png","email":"info@youthbaseballtime.com"},
   {"@type":"WebSite","@id":"https://youthbaseballtime.com/#site","name":"Baseball Time","url":"https://youthbaseballtime.com/","publisher":{"@id":"https://youthbaseballtime.com/#org"},"inLanguage":"en-US"}
 ]}</script>
 <!-- The two weights the board actually leans on, fetched before the parser
      reaches them. Everything else swaps in as it arrives. -->
-<link rel="preload" href="fonts/bc-800.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/bsc-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/bc-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/bsc-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   /* ------------------------------------------------------------------
      Fonts are served from this origin, not fonts.googleapis.com.
@@ -72,13 +75,13 @@
      Google Fonts means giving the file a NEW NAME (bc-700-v2.woff2) — an
      overwrite would not reach anyone who already has the old one.
      ------------------------------------------------------------------ */
-  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/bc-600.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/bc-700.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(fonts/bc-800.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/bsc-400.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/bsc-600.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/bsc-700.woff2) format("woff2"); }
-  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(fonts/bsc-800.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/bc-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/bc-700.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(/fonts/bc-800.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/bsc-400.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/bsc-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/bsc-700.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 800; font-display: swap; src: url(/fonts/bsc-800.woff2) format("woff2"); }
 
   /* ------------------------------------------------------------------
      "Scoreboard" palette. Dark, condensed numerals: the board is meant to
@@ -701,6 +704,15 @@
     background: #ffdd00; color: #000; text-decoration: none;
     font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 999px;
   }
+  /* Server-rendered links between landing pages. */
+  .related { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 20px; }
+  .related .relgroup b { display: block; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+  .related ul { margin: 0; padding: 0; list-style: none; }
+  .related li { margin: 2px 0; }
+  .related a { color: var(--accent); text-decoration: none; }
+  .related a:hover { text-decoration: underline; }
+  .related [aria-current="page"] { color: var(--text-3); }
+
   .alertnote { margin: 8px 0 0; font-size: 12.5px; color: var(--text-4); }
   .alertnote.err { color: #ff9a9a; font-weight: 600; }
   .alertnote.ok { color: var(--success); font-weight: 700; }
@@ -821,7 +833,7 @@
 </noscript>
 
 <header class="masthead">
-  <img class="logo" src="icon-192.png" alt="" width="34" height="34">
+  <img class="logo" src="/icon-192.png" alt="" width="34" height="34">
   <h1>Baseball <span>Time</span></h1>
   <div class="fresh" id="fresh" hidden></div>
   <a class="coffee" href="https://www.buymeacoffee.com/sawtech" target="_blank" rel="noopener" title="Support Baseball Time in TX">☕<span class="lbl">Buy me a coffee</span></a>
@@ -910,7 +922,7 @@
 </footer>
 
 <div class="install" id="install" hidden>
-  <img src="icon-192.png" alt="">
+  <img src="/icon-192.png" alt="">
   <div style="flex:1">
     <b>Add Baseball Time to your home screen</b>
     <span class="steps" id="installSteps"></span>
@@ -1130,6 +1142,48 @@ const DEFAULT_LOC = SITE.origin;
 const DEFAULTS = { ages: ["14U"], dist: SITE.dist, win: 90, minTeams: 3, hideBelow: false, orgs: ORGS.map((o) => o.id) };
 
 /* ---------------------------------------------------------------------------
+   The URL is state.
+
+   Before this the whole site was one address: a search could not be linked to,
+   the Share button sent people to an unfiltered board, and there was exactly
+   one page for search engines to index. Two shapes now:
+
+   - A landing page — /12u-baseball-tournaments/plano-tx — is rendered by
+     api/page.js with its own title, description and event list already in the
+     HTML, and hands the client this object so it comes up filtered without a
+     geocoding round trip. These are the indexable URLs.
+   - Any other filter combination lives in the query string. There are far too
+     many to index, so they carry a canonical back to the landing page and tell
+     robots not to index them.
+   --------------------------------------------------------------------------- */
+const LANDING = window.__LANDING || null;
+const nearestStop = (mi) => {
+  let best = 0;
+  for (let i = 0; i < DIST_STOPS.length; i++) if (Math.abs(DIST_STOPS[i] - mi) < Math.abs(DIST_STOPS[best] - mi)) best = i;
+  return best;
+};
+
+// Query params beat storage, storage beats defaults. Everything is validated —
+// these values arrive from a URL anyone can type.
+const QS = new URLSearchParams(location.search);
+function fromQuery(key, parse) {
+  if (!QS.has(key)) return undefined;
+  const v = parse(QS.get(key));
+  return v === null || v === undefined ? undefined : v;
+}
+const qAges = fromQuery("ages", (v) => { const a = v.split(",").map((x) => x.trim().toUpperCase()).filter((x) => DIVISIONS.includes(x)); return a.length ? a : null; });
+const qMiles = fromQuery("miles", (v) => { const n = +v; return isFinite(n) && n > 0 ? nearestStop(n) : null; });
+const qWin = fromQuery("win", (v) => { const n = +v; return WINDOWS.some((w) => w.d === n) ? n : null; });
+const qMin = fromQuery("min", (v) => { const n = +v; return isFinite(n) && n >= 0 && n <= 30 ? n : null; });
+const qHide = fromQuery("hide", (v) => v === "1" || v === "0" ? v === "1" : null);
+const qOrgs = fromQuery("orgs", (v) => { const o = v.split(",").map((x) => x.trim().toUpperCase()).filter((x) => ORGS.some((r) => r.id === x)); return o.length ? o : null; });
+const qLoc = (() => {
+  const lat = parseFloat(QS.get("lat")), lng = parseFloat(QS.get("lng"));
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { label: (QS.get("near") || `${lat.toFixed(2)}, ${lng.toFixed(2)}`).slice(0, 60), lat, lng };
+})();
+
+/* ---------------------------------------------------------------------------
    State. Everything here is device-local: filters, players and saved events are
    never sent anywhere, which is what the "Saved on this device" note promises.
    --------------------------------------------------------------------------- */
@@ -1142,16 +1196,22 @@ let loc = DEFAULT_LOC;
 {
   const s = store.get("loc", null);
   if (s && isFinite(s.lat) && isFinite(s.lng) && s.label) loc = s;
+  // A landing page is about a place, so it wins over whatever this device last
+  // looked at — the reader arrived asking about Plano.
+  if (qLoc) loc = qLoc;
+  else if (LANDING?.loc) loc = LANDING.loc;
 }
 
 let filters = {
-  ages: (() => { const a = store.get("ages", DEFAULTS.ages); return Array.isArray(a) && a.some((x) => DIVISIONS.includes(x)) ? a.filter((x) => DIVISIONS.includes(x)) : DEFAULTS.ages; })(),
-  dist: (() => { const d = store.get("dist", DEFAULTS.dist); return DIST_STOPS[+d] !== undefined ? +d : DEFAULTS.dist; })(),
-  win: (() => { const w = +store.get("win", DEFAULTS.win); return WINDOWS.some((x) => x.d === w) ? w : DEFAULTS.win; })(),
-  minTeams: (() => { const m = +store.get("minTeams", DEFAULTS.minTeams); return isFinite(m) && m >= 0 && m <= 30 ? m : DEFAULTS.minTeams; })(),
+  ages: qAges ?? (LANDING?.age ? [LANDING.age] : null)
+    ?? (() => { const a = store.get("ages", DEFAULTS.ages); return Array.isArray(a) && a.some((x) => DIVISIONS.includes(x)) ? a.filter((x) => DIVISIONS.includes(x)) : DEFAULTS.ages; })(),
+  dist: qMiles ?? (LANDING?.radius ? nearestStop(LANDING.radius) : null)
+    ?? (() => { const d = store.get("dist", DEFAULTS.dist); return DIST_STOPS[+d] !== undefined ? +d : DEFAULTS.dist; })(),
+  win: qWin ?? (() => { const w = +store.get("win", DEFAULTS.win); return WINDOWS.some((x) => x.d === w) ? w : DEFAULTS.win; })(),
+  minTeams: qMin ?? (() => { const m = +store.get("minTeams", DEFAULTS.minTeams); return isFinite(m) && m >= 0 && m <= 30 ? m : DEFAULTS.minTeams; })(),
   // "Qualifying only" was the same idea under an older name; carry it forward.
-  hideBelow: store.get("hideBelow", store.get("qualOnly", "0") === "1" || store.get("qualOnly", false) === true),
-  orgs: (() => { const o = store.get("orgs", DEFAULTS.orgs); return Array.isArray(o) && o.length ? o.filter((x) => ORGS.some((r) => r.id === x)) : DEFAULTS.orgs; })(),
+  hideBelow: qHide ?? store.get("hideBelow", store.get("qualOnly", "0") === "1" || store.get("qualOnly", false) === true),
+  orgs: qOrgs ?? (() => { const o = store.get("orgs", DEFAULTS.orgs); return Array.isArray(o) && o.length ? o.filter((x) => ORGS.some((r) => r.id === x)) : DEFAULTS.orgs; })(),
 };
 
 // Saved events: none → watching → registered. The old build stored a flat array
@@ -1349,7 +1409,9 @@ async function load() {
     applyLoc();
     paintFreshness();
     render();
-  } else {
+  } else if (!$("#board").querySelector("[data-ssr]")) {
+    // A landing page already has real rows in the HTML; replacing them with a
+    // skeleton would be a step backwards for the reader who just arrived.
     $("#heroWrap").innerHTML = `<div class="skelhero" aria-hidden="true"></div>`;
     $("#board").innerHTML = skeletonHTML();
   }
@@ -2202,18 +2264,95 @@ function setMeta(sel, attr, content) {
   el.setAttribute(attr, content);
 }
 
+/* The address bar follows the board, so any search can be copied out of it and
+   sent to someone. replaceState rather than pushState: changing a filter is not
+   a navigation, and stacking one history entry per chip tap would make the back
+   button useless for leaving the site.
+
+   A landing page keeps its own clean URL until the reader actually changes
+   something, so arriving from search does not immediately rewrite the address
+   into a query string. */
+function searchParams() {
+  const p = new URLSearchParams();
+  p.set("ages", filters.ages.join(","));
+  p.set("miles", String(DIST_STOPS[filters.dist]));
+  p.set("win", String(filters.win));
+  p.set("min", String(filters.minTeams));
+  if (filters.hideBelow) p.set("hide", "1");
+  if (filters.orgs.length !== ORGS.length) p.set("orgs", filters.orgs.join(","));
+  p.set("near", loc.label);
+  p.set("lat", loc.lat.toFixed(4));
+  p.set("lng", loc.lng.toFixed(4));
+  if (FORCED) p.set("site", FORCED);
+  return p;
+}
+
+// True while the board still shows exactly what the landing page promised —
+// every filter, not just the two the URL names. A reader whose device
+// remembers a tighter team floor is not looking at the page that URL describes,
+// so they get a query URL that says what they are actually seeing, and it is
+// marked noindex. A crawler, which carries no stored filters, always sees the
+// clean landing URL.
+function onLandingDefaults() {
+  if (!LANDING) return false;
+  const sameAge = LANDING.age ? filters.ages.length === 1 && filters.ages[0] === LANDING.age : true;
+  const sameLoc = !LANDING.loc || (loc.label === LANDING.loc.label && Math.abs(loc.lat - LANDING.loc.lat) < 1e-4);
+  return sameAge && sameLoc
+    && filters.dist === nearestStop(LANDING.radius)
+    && filters.win === DEFAULTS.win && filters.minTeams === DEFAULTS.minTeams
+    && filters.hideBelow === DEFAULTS.hideBelow && filters.orgs.length === ORGS.length;
+}
+
+// Still showing exactly what the plain home page promises. A visitor whose
+// device remembers a different search gets a query URL describing it, but a
+// crawler — which has no stored filters — always sees the bare "/".
+const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+function onSiteDefaults() {
+  return sameList(filters.ages, DEFAULTS.ages) && filters.dist === DEFAULTS.dist
+    && filters.win === DEFAULTS.win && filters.minTeams === DEFAULTS.minTeams
+    && filters.hideBelow === DEFAULTS.hideBelow && filters.orgs.length === ORGS.length
+    && loc.label === DEFAULT_LOC.label;
+}
+
+let lastURL = null;
+function syncURL() {
+  const clean = LANDING ? onLandingDefaults() : onSiteDefaults();
+  const next = clean ? (LANDING ? LANDING.path : "/") : `/?${searchParams()}`;
+  if (next !== lastURL) {
+    lastURL = next;
+    // Not available in every embedding, and a URL that cannot be written is
+    // not worth failing a render over.
+    try { history.replaceState(null, "", next); } catch {}
+  }
+  applyCanonical(clean);
+}
+
+// One indexable URL per landing page. Every ad-hoc filter combination points
+// its canonical at the page it came from and asks not to be indexed, so the
+// query-string space cannot dilute the pages that are meant to rank.
+//
+// Indexability comes from the state we just computed rather than from re-reading
+// location.search, which is only correct if the history write happened to work.
+function applyCanonical(clean) {
+  const canonical = SITE_URL + (LANDING ? LANDING.canonical || LANDING.path : "/");
+  document.querySelector('link[rel="canonical"]').href = canonical;
+  setMeta('meta[property="og:url"]', "content", canonical);
+  setMeta('meta[name="robots"]', "content",
+    clean ? "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" : "noindex, follow");
+}
+
 function applySEO() {
-  const url = `${SITE_URL}/`;
-  document.title = SITE.title;
+  const url = `${SITE_URL}${LANDING ? LANDING.canonical || LANDING.path : "/"}`;
+  document.title = LANDING?.title || SITE.title;
   document.querySelector('link[rel="canonical"]').href = url;
-  setMeta('meta[name="description"]', "content", SITE.description);
-  setMeta('meta[property="og:title"]', "content", SITE.title);
-  setMeta('meta[property="og:description"]', "content", SITE.description);
+  setMeta('meta[name="description"]', "content", LANDING?.description || SITE.description);
+  setMeta('meta[property="og:title"]', "content", LANDING?.title || SITE.title);
+  setMeta('meta[property="og:description"]', "content", LANDING?.description || SITE.description);
   setMeta('meta[property="og:site_name"]', "content", SITE.brand);
   setMeta('meta[property="og:url"]', "content", url);
   setMeta('meta[property="og:image"]', "content", `${SITE_URL}/${SITE.og}`);
-  setMeta('meta[name="twitter:title"]', "content", SITE.title);
-  setMeta('meta[name="twitter:description"]', "content", SITE.description);
+  setMeta('meta[name="twitter:title"]', "content", LANDING?.title || SITE.title);
+  setMeta('meta[name="twitter:description"]', "content", LANDING?.description || SITE.description);
   setMeta('meta[name="twitter:image"]', "content", `${SITE_URL}/${SITE.og}`);
   setMeta('meta[name="apple-mobile-web-app-title"]', "content", SITE.brand);
   // Regional signals only make sense on the regional domain.
@@ -2227,7 +2366,7 @@ function applySEO() {
   // needs, and gives a screen reader the same context a sighted reader gets
   // from the board underneath it.
   const h1 = document.querySelector(".masthead h1");
-  h1.innerHTML = `Baseball <span>Time</span>${SITE.key === "tx" ? " in TX" : ""}<span class="sr"> — ${esc(SITE.heading)}</span>`;
+  h1.innerHTML = `Baseball <span>Time</span>${SITE.key === "tx" ? " in TX" : ""}<span class="sr"> — ${esc(LANDING?.heading || SITE.heading)}</span>`;
 
   const org = { "@type": "Organization", "@id": `${url}#org`, name: SITE.brand, url, logo: `${SITE_URL}/icon-512.png`, email: "info@youthbaseballtime.com", areaServed: SITE.areaServed };
   document.getElementById("ldSite").textContent = JSON.stringify({
@@ -2244,7 +2383,14 @@ function applySEO() {
 // actually turn into a rich result, and every field below comes from the
 // scrape — nothing is invented to satisfy the schema.
 function renderEventLD(rows) {
-  const el = document.getElementById("ldEvents");
+  // Created on demand: the markup no longer ships a placeholder to fill.
+  let el = document.getElementById("ldEvents");
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.id = "ldEvents";
+    document.head.appendChild(el);
+  }
   const items = rows.slice(0, 40).map((e) => {
     const place = {
       "@type": "Place",
@@ -2293,6 +2439,7 @@ function render() {
   store.set("orgs", filters.orgs);
 
   renderFilterChips();
+  syncURL();
   // What an email alert watches. It has to carry every parameter that moves the
   // board, or the digest ends up describing a different search than the one on
   // screen: hideBelow decides whether min hides anything at all, and win bounds
@@ -2516,10 +2663,11 @@ $("#addPlayer").addEventListener("submit", (ev) => {
     flash(legacyCopy(url) ? "Copied" : "Copy failed");
   };
   btn.addEventListener("click", async () => {
-    const url = location.origin + location.pathname;
+    // The point of sharing is the search on screen, not the home page.
+    const url = location.href;
     if (!navigator.share) return copy(url);
     try {
-      await navigator.share({ title: "Baseball Time in TX", text: "10U–14U tournaments with open brackets near you, checked twice daily.", url });
+      await navigator.share({ title: SITE.brand, text: summaryText(filters), url });
     } catch (err) {
       if (err?.name === "AbortError") return;
       copy(url);
@@ -2624,7 +2772,7 @@ $("#addPlayer").addEventListener("submit", (ev) => {
 
 applySEO();
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
 load();
 </script>
 </body>

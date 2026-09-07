@@ -5,8 +5,15 @@
 // itself, not the other. Static files in site/ can only carry one hostname, so
 // these three are generated per request from the Host header. Cached hard at
 // the edge, since the answer only changes when a scrape lands.
+import { DIVISIONS, fetchEvents, eventsFor, landingPath, primaryMetros } from "./_shared.js";
+
 const SUPABASE_URL = "https://yeykyutsbeqjcgdxlucn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SLM96UPQ3Rgrf6MTpXRZUQ_LklkFhPH";
+
+// Below this a landing page has nothing worth ranking for, so it stays out of
+// the sitemap. It still resolves if someone follows a link to it — a thin page
+// is fine to serve and bad to advertise.
+const MIN_EVENTS = 3;
 
 const SITES = {
   "youthbaseballtime.com": {
@@ -73,16 +80,41 @@ export default async function handler(req, res) {
 
   if (kind === "sitemap") {
     const lastmod = (await lastScrape()) || new Date().toISOString();
+    const urls = [{ loc: `${base}/`, priority: "1.0" }];
+
+    // One entry per landing page that currently has something to show. Built
+    // from the live data so a metro drops out of the index when its season
+    // ends rather than sitting there as an empty page.
+    try {
+      const rows = await fetchEvents();
+      // Only metros that are not near-duplicates of a bigger one; the folded
+      // suburbs canonicalise into these rather than competing with them.
+      const primaries = primaryMetros(rows).map((k) => k.metro);
+      for (const age of [null, ...DIVISIONS]) {
+        if (age && eventsFor(rows, { age, metro: null }).length >= MIN_EVENTS) {
+          urls.push({ loc: base + landingPath(age, null), priority: "0.8" });
+        }
+        for (const metro of primaries) {
+          if (eventsFor(rows, { age, metro }).length >= MIN_EVENTS) {
+            urls.push({ loc: base + landingPath(age, metro), priority: age ? "0.7" : "0.6" });
+          }
+        }
+      }
+    } catch {
+      // A Supabase hiccup should not empty the sitemap; the home page still ships.
+    }
+
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.status(200).send(
       `<?xml version="1.0" encoding="UTF-8"?>\n` +
       `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      `  <url>\n` +
-      `    <loc>${base}/</loc>\n` +
-      `    <lastmod>${lastmod}</lastmod>\n` +
-      `    <changefreq>daily</changefreq>\n` +
-      `    <priority>1.0</priority>\n` +
-      `  </url>\n` +
+      urls.map(({ loc, priority }) =>
+        `  <url>\n` +
+        `    <loc>${loc}</loc>\n` +
+        `    <lastmod>${lastmod}</lastmod>\n` +
+        `    <changefreq>daily</changefreq>\n` +
+        `    <priority>${priority}</priority>\n` +
+        `  </url>\n`).join("") +
       `</urlset>\n`
     );
     return;

@@ -96,6 +96,44 @@ Colours that JavaScript resolves rather than CSS — map pins, the sparkline ram
 the tile filter — are declared as custom properties and read with `cssVar()`, so
 each theme has exactly one definition.
 
+## URLs, and the pages search engines can find
+
+The dashboard used to live at exactly one address. A search could not be linked
+to, Share sent people to an unfiltered board, and the sitemap had a single
+entry — so there was nothing to rank for "12U baseball tournaments near Plano",
+which is the query this site exists to answer.
+
+**Landing pages** are the indexable URLs: `/12u-baseball-tournaments/plano-tx`,
+`/14u-baseball-tournaments`, `/youth-baseball-tournaments/dallas-tx`.
+`api/page.js` serves them — the same `site/index.html`, with the title,
+description, canonical, `SportsEvent` `ItemList` and forty real tournament rows
+already in the HTML, plus links to the neighbouring age and place pages. A
+crawler that runs no JavaScript gets the answer; the client boots and takes the
+board over, replacing `#board` wholesale, so there is no hydration to reconcile.
+`window.__LANDING` carries the resolved place, so the page comes up filtered
+without a geocoding round trip.
+
+**Which places get a page** is curated, in `METROS` in `api/_shared.js`, not
+derived from the data. The scraped `city` field holds multi-venue listings
+("Arlington, Bedford, Grapevine, Mesquite"), metro labels ("DFW Metroplex") and
+whichever small town hosted a tournament, so ranking cities by event count
+nominates Millsap and spells the DFW page as a four-town slug. `METROS` is
+ordered by market prominence because `primaryMetros()` folds near-duplicates
+into the first match: at a 50-mile radius, Plano and Frisco and Irving list
+almost exactly Dallas's tournaments, and publishing all of them is the thin-
+duplicate pattern search engines exist to filter. Those URLs still work and
+still show the right board — they set their canonical to the metro they
+duplicate and stay out of the sitemap. Nine distinct markets survive today, so
+`/sitemap.xml` carries 60 URLs rather than 292 near-copies.
+
+**Everything else is a query string.** `/?ages=11U,12U&miles=25&near=Waco,+TX…`
+round-trips every filter, so any search can be copied out of the address bar.
+There are far too many combinations to index, so they canonicalise back and
+carry `noindex`. The URL only leaves its clean landing form once the board
+actually stops matching what that page promised — every filter counts, not just
+the two the path names. A crawler carries no stored filters, so it always sees
+the clean URL.
+
 ## Two domains
 
 The same deployment answers on both `youthbaseballtime.com` (national) and
@@ -119,13 +157,24 @@ adding an entry.
 - **`robots.txt`, `sitemap.xml` and `/app.webmanifest` are generated per
   request** by `api/seo.js` from the `Host` header, because a static file can
   only name one domain. The manifest moved off `manifest.webmanifest` so no
-  static file shadows the rewrite. `<lastmod>` reports the newest scrape, not
-  the deploy.
+  static file shadows the rewrite — Vercel resolves the filesystem before
+  rewrites, which is also why `/` cannot be routed through a function while
+  `site/index.html` exists. `<lastmod>` reports the newest scrape, not the
+  deploy.
+
+- **Every asset reference is root-relative.** The same document is served from
+  `/12u-baseball-tournaments/plano-tx`, where `icon-192.png` would resolve
+  inside that directory; the service worker registers with an explicit `/`
+  scope for the same reason.
 - **Structured data**: `Organization`, `WebSite` and `WebPage` ship in the
   markup (Bing and social scrapers run JavaScript poorly) and are rewritten per
   host; every listed tournament is emitted as a `SportsEvent` in an `ItemList`,
   which is the part search engines can turn into a rich result. Entry-fee
   `offers` are omitted rather than guessed when an organizer doesn't publish one.
+  The markup ships **no** `ItemList` placeholder: an empty one told every
+  crawler that does not run JavaScript that the site lists zero events. Landing
+  pages have theirs filled in by `api/page.js`; the plain home page's is created
+  by the client once it has data.
 - **Open Graph images** live at `site/og.png` and `site/og-tx.png`, 1200×630.
   They were drawn on a canvas and saved through the dev server's `/save`
   endpoint; re-run that snippet if the branding changes.
