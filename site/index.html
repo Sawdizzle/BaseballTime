@@ -742,6 +742,22 @@
   }
   .railclose { display: none; width: 100%; margin-bottom: 10px; }
 
+  /* Above 1100 the rail is a column beside a board that can run thousands of
+     pixels. The column itself stays stretched so its border and background
+     still run the full height; the contents ride along on sticky, so clicking
+     a late-September row shows its detail without a trip back to the top.
+     --barh is the sticky filter bar's measured height (see stickyBar). */
+  @media (min-width: 1101px) {
+    .rail.detail { position: relative; padding: 0; }
+    .rail.detail .railinner {
+      position: sticky; top: var(--barh, 58px);
+      max-height: calc(100svh - var(--barh, 58px));
+      overflow-y: auto; overscroll-behavior: contain;
+      padding: 22px 22px 34px;
+      scrollbar-width: thin;
+    }
+  }
+
   @media (max-width: 760px) {
     header.masthead { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); gap: 10px; }
     .masthead .logo { width: 28px; height: 28px; }
@@ -1847,6 +1863,7 @@ function renderDetail() {
   const wx = wxText(e);
 
   rail.innerHTML = `
+    <div class="railinner">
     <button class="btn out railclose" type="button" data-close="detail">Close</button>
     <span class="eyebrow">Event detail</span>
     <h2>${esc(e.name)}</h2>
@@ -1872,7 +1889,8 @@ function renderDetail() {
       <button class="btn out${mark ? " on" : ""}" type="button" data-save="${esc(e.id)}">${mark === "registered" ? "★ Registered" : mark === "watching" ? "☆ Watching" : "☆ Save"}</button>
       <a class="btn out" href="${mapsUrl(e)}" target="_blank" rel="noopener">Directions</a>
     </div>
-    <p class="alertnote">Tap Save again to cycle watching → registered → off.</p>`;
+    <p class="alertnote">Tap Save again to cycle watching → registered → off.</p>
+    </div>`;
   rail.dataset.open = String(detailOpen);
   // The rail's mini-map means the *board* pulls Leaflet and OSM tiles — 38 KB
   // from a third CDN plus a dozen tile requests — even though the reader came
@@ -2687,7 +2705,15 @@ document.addEventListener("click", (ev) => {
 });
 function setViewDetail() {
   render();
-  if (window.innerWidth <= 1100) $("#detail").scrollIntoView({ block: "nearest" });
+  if (window.innerWidth <= 1100) return $("#detail").scrollIntoView({ block: "nearest" });
+  // On desktop the rail rides on sticky, so it is already in view — except at
+  // the very end of the board, where it has run out of column to stick to and
+  // its heading has slid above the fold. Give the page the few pixels back.
+  const inner = $("#detail .railinner");
+  if (!inner) return;
+  const top = inner.getBoundingClientRect().top;
+  const bar = $("#filterbar").offsetHeight;
+  if (top < bar) window.scrollBy({ top: top - bar, behavior: "instant" });
 }
 
 $("#moreBtn").addEventListener("click", () => {
@@ -2866,6 +2892,14 @@ $("#addPlayer").addEventListener("submit", (ev) => {
     ([entry]) => bar.classList.toggle("stuck", !entry.isIntersecting),
     { threshold: 0 }
   ).observe(mark);
+
+  // The detail rail sticks *below* this bar, and the bar grows a row taller
+  // when the chips wrap, so publish its height rather than guessing at one.
+  const publish = () =>
+    document.documentElement.style.setProperty("--barh", bar.offsetHeight + "px");
+  publish();
+  if (window.ResizeObserver) new ResizeObserver(publish).observe(bar);
+  else addEventListener("resize", publish);
 })();
 
 applySEO();

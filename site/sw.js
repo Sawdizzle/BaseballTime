@@ -1,7 +1,7 @@
 // Makes the site installable and keeps the shell available offline.
 // Tournament data is never cached here — it comes live from Supabase, and the
 // page has its own short-lived cache of the last board for a fast first paint.
-const CACHE = "bbtime-shell-v5";
+const CACHE = "bbtime-shell-v6";
 const SHELL = [
   "/", "/index.html", "/app.webmanifest", "/icon-192.png", "/icon-512.png",
   "/fonts/bc-600.woff2", "/fonts/bc-700.woff2", "/fonts/bc-800.woff2",
