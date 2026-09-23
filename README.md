@@ -1,3 +1,10 @@
+> **Retired (2026-09-23).** Both youthbaseballtime.com and
+> youthbaseballtimeintx.com are built from
+> [Sawdizzle/youthbaseballtime](https://github.com/Sawdizzle/youthbaseballtime),
+> which now carries everything useful from this repo. The scrape workflow here
+> is disabled and the repo is archived; the `tourneyscan` schema it wrote to is
+> no longer read by anything.
+
 # BaseballTime / TourneyScan
 
 Finds 10U through 14U tournaments with open brackets across Texas, Oklahoma and
